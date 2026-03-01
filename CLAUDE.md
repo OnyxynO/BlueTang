@@ -55,10 +55,16 @@ src/
 | Phase | État | Contenu |
 |-------|------|---------|
 | 1 — Proxy transparent | ✅ Terminé | Passthrough pur, SSE streaming |
-| 2 — RAG BM25 | ⬜ À faire | Chunking heuristique + FTS5 SQLite |
+| 2 — RAG BM25 | 🔵 En cours | Chunking heuristique + FTS5 SQLite |
 | 3 — RAG sémantique + hybrid | ⬜ À faire | sqlite-vec + nomic-embed-text |
 | 4 — Mémoire de conversation | ⬜ À faire | Sessions SQLite + résumé progressif |
 | 5 — Finition | ⬜ À faire | tree-sitter AST, benchmarks, npm publish |
+
+## Suivi de projet
+
+- **GitHub Project** : https://github.com/users/OnyxynO/projects/1
+- **Issues** : une par phase, liées au repo — déplacer en "In Progress" en début de phase, "Done" à la fin
+- **Backlog détaillé** : `docs/03_BACKLOG.md`
 
 ## Endpoints (Phase 1)
 
