@@ -66,7 +66,7 @@ src/
 |-------|------|---------|
 | 1 — Proxy transparent | ✅ Terminé | Passthrough pur, SSE streaming |
 | 2 — RAG BM25 | ✅ Terminé | Chunking heuristique + FTS5 SQLite + CLI index/status |
-| 3 — RAG sémantique + hybrid | ⬜ À faire | sqlite-vec + nomic-embed-text |
+| 3 — RAG sémantique + hybrid | 🔵 Prêt à démarrer | sqlite-vec + nomic-embed-text (prérequis validés) |
 | 4 — Mémoire de conversation | ⬜ À faire | Sessions SQLite + résumé progressif |
 | 5 — Finition | ⬜ À faire | tree-sitter AST, benchmarks, npm publish |
 
@@ -131,3 +131,5 @@ node dist/index.js serve
 - **FTS5 tokenizer `unicode61` ne découpe pas le camelCase** : "envoyerEmail" est un seul token, chercher "email" ne le trouve pas
 - **`better-sqlite3` INSERT OR IGNORE** : `lastInsertRowid` après un IGNORE retourne le rowid de l'insert précédent → toujours faire un SELECT après pour récupérer l'id fiable
 - **qwen3:1.7b minimum** recommandé pour exploiter le contexte RAG injecté — 0.6b trop limité
+- **sqlite-vec** : ne pas passer `Float32Array` ou `Buffer` — utiliser du JSON string `'[1.0, 2.0, ...]'` pour les insertions et les requêtes MATCH
+- **Phase 3 prérequis validés** : `nomic-embed-text` (768 dim) + `sqlite-vec` v0.1.7 fonctionnels
