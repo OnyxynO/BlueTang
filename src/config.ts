@@ -10,7 +10,7 @@ export interface Config {
 export const configDefaut: Config = {
   port: 11435,
   ollamaUrl: 'http://localhost:11434',
-  modele: 'qwen3:8b',
+  modele: 'qwen3:1.7b',
   numCtx: 16384,
   verbose: false,
   cheminBdd: '.bluetang/index.db',
