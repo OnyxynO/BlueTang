@@ -42,12 +42,22 @@ npm run build
 
 ```
 src/
-├── index.ts           # CLI (Commander)
-├── config.ts          # Interface Config + valeurs par défaut
+├── index.ts              # CLI (Commander) : serve, index, status
+├── config.ts             # Interface Config + valeurs par défaut
+├── bdd/
+│   ├── connexion.ts      # ouvrirBdd() + type Db
+│   └── schema.ts         # CREATE TABLE fichiers, chunks, chunks_fts (FTS5)
+├── indexation/
+│   ├── chunker.ts        # chunkerFichier() — découpage heuristique par langage
+│   ├── scanner.ts        # scannerDossier() — scan + filtre .gitignore + hash
+│   └── pipeline.ts       # indexerDossier() — orchestration complète
+├── rag/
+│   ├── recherche.ts      # rechercherBM25() — FTS5 + OR entre termes
+│   └── assembleur.ts     # enrichirMessages() — injection contexte dans le prompt
 └── serveur/
-    ├── app.ts         # creerApp() + demarrerServeur()
-    ├── completions.ts # POST /v1/chat/completions
-    └── modeles.ts     # GET /v1/models, /health, POST /v1/embeddings
+    ├── app.ts            # creerApp() + demarrerServeur()
+    ├── completions.ts    # POST /v1/chat/completions + enrichissement RAG
+    └── modeles.ts        # GET /v1/models, /health, POST /v1/embeddings
 ```
 
 ## Phases
@@ -55,7 +65,7 @@ src/
 | Phase | État | Contenu |
 |-------|------|---------|
 | 1 — Proxy transparent | ✅ Terminé | Passthrough pur, SSE streaming |
-| 2 — RAG BM25 | 🔵 En cours | Chunking heuristique + FTS5 SQLite |
+| 2 — RAG BM25 | ✅ Terminé | Chunking heuristique + FTS5 SQLite + CLI index/status |
 | 3 — RAG sémantique + hybrid | ⬜ À faire | sqlite-vec + nomic-embed-text |
 | 4 — Mémoire de conversation | ⬜ À faire | Sessions SQLite + résumé progressif |
 | 5 — Finition | ⬜ À faire | tree-sitter AST, benchmarks, npm publish |
@@ -75,14 +85,27 @@ src/
 | POST | `/v1/embeddings` | Passthrough vers Ollama |
 | GET | `/health` | État proxy + version Ollama |
 
+## Commandes Phase 2
+
+```bash
+# Indexer la codebase courante
+node dist/index.js index ./src
+
+# Voir les stats de l'index
+node dist/index.js status
+
+# Lancer le proxy avec RAG actif
+node dist/index.js serve
+```
+
 ## Configuration Continue.dev
 
 ```json
 {
   "models": [{
-    "title": "Qwen3 8B (BlueTang)",
+    "title": "Qwen3 1.7B (BlueTang)",
     "provider": "openai",
-    "model": "qwen3:8b",
+    "model": "qwen3:1.7b",
     "apiBase": "http://localhost:11435/v1",
     "apiKey": "not-needed"
   }]
@@ -104,3 +127,7 @@ src/
 - Les `.js` dans les imports sont obligatoires (ESM NodeNext)
 - `creerApp()` est exportée séparément de `demarrerServeur()` pour les tests (sans serveur réel)
 - Les tests mockent `fetch` globalement via `vi.stubGlobal('fetch', ...)`
+- **FTS5 MATCH = AND par défaut** : "Que fait la fonction X" échoue car "Que", "fait" ne sont pas dans le code → filtrer les stopwords et utiliser OR entre les termes significatifs
+- **FTS5 tokenizer `unicode61` ne découpe pas le camelCase** : "envoyerEmail" est un seul token, chercher "email" ne le trouve pas
+- **`better-sqlite3` INSERT OR IGNORE** : `lastInsertRowid` après un IGNORE retourne le rowid de l'insert précédent → toujours faire un SELECT après pour récupérer l'id fiable
+- **qwen3:1.7b minimum** recommandé pour exploiter le contexte RAG injecté — 0.6b trop limité
