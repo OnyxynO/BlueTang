@@ -22,21 +22,27 @@
 
 ---
 
-## Phase 2 — Indexation + RAG BM25
+## Phase 2 — Indexation + RAG BM25 ✅
 
 **Critère** : poser "Que fait la fonction X ?" et obtenir une réponse basée sur le bon fichier.
 
 **Pourquoi BM25 d'abord** : pas besoin d'Ollama pour les embeddings, itération rapide, bon pour les noms exacts.
 
-- [ ] Schéma SQLite : tables `chunks`, `chunks_fts` (FTS5)
-- [ ] Chunking heuristique (regex par langage : TS/JS, Python, PHP, fallback universel)
-- [ ] Pipeline d'indexation : scan fichiers → filtre `.gitignore` → détection changements (hash) → chunks → FTS5
-- [ ] CLI `index -c <chemin>` avec progression
-- [ ] Recherche BM25 : FTS5 → top-K → sélection par budget tokens
-- [ ] Assembleur de prompt : injecter les chunks en message `system` juste avant la question
-- [ ] Interception `POST /v1/chat/completions` : enrichir les messages avant forward
-- [ ] CLI `status` : nombre de chunks indexés, fichiers, dernière indexation
-- [ ] Tests : needle-in-a-codebase (chunk pertinent retrouvé ?)
+- [x] Schéma SQLite : tables `chunks`, `chunks_fts` (FTS5)
+- [x] Chunking heuristique (regex par langage : TS/JS, Python, PHP, fallback universel)
+- [x] Pipeline d'indexation : scan fichiers → filtre `.gitignore` → détection changements (hash) → chunks → FTS5
+- [x] CLI `index [chemin]` avec progression
+- [x] Recherche BM25 : FTS5 → top-K → sélection par budget tokens (~2000 tokens)
+- [x] Assembleur de prompt : injecter les chunks en message `system` juste avant la question
+- [x] Interception `POST /v1/chat/completions` : enrichir les messages avant forward
+- [x] CLI `status` : nombre de chunks indexés, fichiers, dernière indexation
+- [x] Tests : needle-in-a-codebase (chunk pertinent retrouvé ?)
+
+**Validation manuelle** : `bluetang index ./src` puis poser une question sur la codebase → la réponse du modèle reflète le code indexé.
+
+**Piège découvert** : FTS5 tokenizer `unicode61` ne découpe pas le camelCase — "envoyerEmail" est un seul token. Les requêtes doivent utiliser des mots entiers présents dans le code.
+
+---
 
 ---
 
