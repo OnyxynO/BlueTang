@@ -1,6 +1,6 @@
 # BlueTang — Documentation projet
 
-> Consulter `../GUIDELINES_PROJETS.md` avant tout développement significatif.
+@../GUIDELINES_PROJETS.md
 
 ## Description
 

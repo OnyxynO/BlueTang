@@ -91,3 +91,29 @@
 - Support multi-projets (plusieurs index)
 - Plugin VSCode natif
 - Dashboard web local pour visualiser l'index
+
+---
+
+## Idée — Client MCP générique
+
+**Problème** : Ollama ne supporte pas MCP nativement → les modèles locaux ne peuvent pas accéder à des outils et sources de données externes (notes, fichiers, APIs...).
+
+**Idée** : faire de BlueTang un **client MCP** qui interroge des serveurs MCP configurés, injecte le contexte pertinent dans le prompt, puis forward vers Ollama. Ollama ne sait jamais que MCP existe.
+
+```
+Client LLM → BlueTang → [MCP servers] → prompt enrichi → Ollama
+```
+
+**Configuration envisagée dans `.bluetang.json`** :
+```json
+{
+  "mcp": [
+    { "name": "anytype", "transport": "sse", "url": "http://localhost:31007" },
+    { "name": "filesystem", "transport": "stdio", "command": "npx @modelcontextprotocol/server-filesystem /home/user/docs" }
+  ]
+}
+```
+
+**Ce que ça apporte** : n'importe quel serveur MCP (Anytype, Obsidian, filesystem, base de données...) devient accessible à un modèle local sans modifier Ollama ni le client LLM.
+
+**À creuser** : stratégie d'injection (toujours ? selon pertinence ?), gestion des transports stdio vs SSE, MCP SDK TypeScript disponible.

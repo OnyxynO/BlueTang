@@ -1,9 +1,15 @@
 import type { Hono } from 'hono'
 import type { Config } from '../config.js'
+import type { Db } from '../bdd/connexion.js'
+import { enrichirMessages } from '../rag/assembleur.js'
 
-export function ajouterRoutesCompletions(app: Hono, config: Config): void {
+export function ajouterRoutesCompletions(app: Hono, config: Config, db: Db | null = null): void {
   app.post('/v1/chat/completions', async (c) => {
     const corps = await c.req.json()
+
+    if (db && Array.isArray(corps.messages)) {
+      corps.messages = enrichirMessages(corps.messages as { role: string; content: string }[], db)
+    }
 
     let reponseOllama: Response
     try {

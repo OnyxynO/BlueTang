@@ -4,6 +4,7 @@ export interface Config {
   modele: string
   numCtx: number
   verbose: boolean
+  cheminBdd: string
 }
 
 export const configDefaut: Config = {
@@ -12,4 +13,5 @@ export const configDefaut: Config = {
   modele: 'qwen3:8b',
   numCtx: 16384,
   verbose: false,
+  cheminBdd: '.bluetang/index.db',
 }
