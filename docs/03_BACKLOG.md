@@ -68,13 +68,13 @@
 
 **Critère** : après 30 échanges, le modèle retrouve une décision prise au tour 5.
 
-- [ ] Gestion des sessions : table `sessions` + `messages` dans SQLite
-- [ ] Identification session : SHA-256 des 3 premiers messages (best-effort)
-- [ ] Sauvegarde des échanges après chaque réponse (capture du stream)
-- [ ] Résumé progressif : au-delà de 10 messages, résumer les anciens (même modèle)
-- [ ] Extraction de faits clés (heuristiques regex)
-- [ ] Injection mémoire dans le prompt (faits + résumé)
-- [ ] Tests : rétention sur conversation simulée de 50 tours
+- [x] Gestion des sessions : tables `sessions` + `messages_session` dans SQLite
+- [x] Identification session : SHA-256 des 3 premiers messages (best-effort)
+- [x] Sauvegarde des échanges après chaque réponse (tee() du stream SSE + capture async)
+- [x] Résumé progressif : au-delà de 10 messages, résumer les anciens (même modèle, tous les 5 nouveaux)
+- [x] Extraction de faits clés (heuristiques regex : prénom, outils, projet, préférences)
+- [x] Injection mémoire dans le prompt (résumé + faits en 1er message système, avant RAG)
+- [x] Tests : rétention sur conversation simulée (30 messages, décision du tour 5 dans le résumé)
 
 ---
 

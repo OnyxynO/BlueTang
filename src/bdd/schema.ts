@@ -51,5 +51,25 @@ export function initSchema(db: Database): void {
       vec_rowid INTEGER PRIMARY KEY,
       chunk_id  INTEGER NOT NULL REFERENCES chunks(id)
     );
+
+    -- Mémoire de conversation (Phase 4)
+    CREATE TABLE IF NOT EXISTS sessions (
+      id          TEXT PRIMARY KEY,
+      cree_le     TEXT NOT NULL DEFAULT (datetime('now')),
+      mis_a_jour  TEXT NOT NULL DEFAULT (datetime('now')),
+      resume      TEXT,
+      faits       TEXT NOT NULL DEFAULT '[]'
+    );
+
+    CREATE TABLE IF NOT EXISTS messages_session (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id  TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      role        TEXT NOT NULL,
+      contenu     TEXT NOT NULL,
+      cree_le     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_messages_session_id
+      ON messages_session(session_id);
   `)
 }
