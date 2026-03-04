@@ -41,5 +41,10 @@ export function initSchema(db: Database): void {
       INSERT INTO chunks_fts(chunks_fts, rowid, contenu) VALUES ('delete', old.id, old.contenu);
       INSERT INTO chunks_fts(rowid, contenu) VALUES (new.id, new.contenu);
     END;
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
+      chunk_id INTEGER PRIMARY KEY,
+      embedding FLOAT[768]
+    );
   `)
 }

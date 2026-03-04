@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import Database from 'better-sqlite3'
+import * as sqliteVec from 'sqlite-vec'
 import { initSchema } from '../src/bdd/schema.js'
 import { rechercherBM25 } from '../src/rag/recherche.js'
 import { enrichirMessages } from '../src/rag/assembleur.js'
@@ -7,6 +8,7 @@ import type { Db } from '../src/bdd/connexion.js'
 
 function creerBddTest(): Db {
   const db = new Database(':memory:')
+  sqliteVec.load(db)
   initSchema(db)
   return db
 }

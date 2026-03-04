@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import * as sqliteVec from 'sqlite-vec'
 import { mkdirSync, existsSync } from 'fs'
 import path from 'path'
 import { initSchema } from './schema.js'
@@ -11,6 +12,7 @@ export function ouvrirBdd(cheminBdd: string): Db {
     mkdirSync(dossier, { recursive: true })
   }
   const db = new Database(cheminBdd)
+  sqliteVec.load(db)
   initSchema(db)
   return db
 }

@@ -39,15 +39,19 @@ programme
 
 programme
   .command('index [chemin]')
-  .description('Indexer un dossier pour le RAG BM25')
+  .description('Indexer un dossier pour le RAG (BM25 + sémantique si --ollama-url fourni)')
   .option('-v, --verbose', 'Afficher les fichiers indexés', false)
   .option('--db-path <chemin>', 'Chemin de la base de données', configDefaut.cheminBdd)
+  .option('--ollama-url <url>', 'URL Ollama pour les embeddings sémantiques', configDefaut.ollamaUrl)
   .action(async (chemin: string | undefined, options) => {
     const racine = path.resolve(chemin ?? '.')
     const db = ouvrirBdd(options.dbPath)
 
     console.log(`Indexation de ${racine}...`)
-    const stats = await indexerDossier(racine, db, { verbose: options.verbose })
+    const stats = await indexerDossier(racine, db, {
+      verbose: options.verbose,
+      ollamaUrl: options.ollamaUrl,
+    })
 
     console.log(
       `\nTerminé : ${stats.fichiersIndexes} fichier${stats.fichiersIndexes !== 1 ? 's' : ''} indexé${stats.fichiersIndexes !== 1 ? 's' : ''}, ` +
