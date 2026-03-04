@@ -122,5 +122,7 @@ export async function lancerInit(): Promise<void> {
     )
   }
 
-  console.log('\nProchaine étape : bluetang serve\n')
+  const enDev = process.argv[1]?.endsWith('src/index.ts') || process.argv.includes('tsx')
+  const cmdServe = enDev ? 'npm run dev -- serve' : 'bluetang serve'
+  console.log(`\nProchaine étape : ${cmdServe}\n`)
 }
