@@ -1,0 +1,14 @@
+{
+  "port": 11435,
+  "ollamaUrl": "http://localhost:11434",
+  "modele": "qwen3:1.7b",
+  "numCtx": 16384,
+  "cheminBdd": ".bluetang/index.db",
+  "mcp": [
+    {
+      "nom": "filesystem",
+      "commande": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/chemin/vers/dossier"]
+    }
+  ]
+}

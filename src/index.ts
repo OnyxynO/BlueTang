@@ -27,9 +27,9 @@ programme
   .option('--num-ctx <n>', 'Taille du contexte', String(cfg.numCtx))
   .option('-v, --verbose', 'Logs détaillés', false)
   .option('--db-path <chemin>', 'Chemin de la base de données', cfg.cheminBdd)
-  .action((options) => {
+  .action(async (options) => {
     const db = ouvrirBdd(options.dbPath)
-    demarrerServeur(
+    await demarrerServeur(
       {
         port: Number(options.port),
         ollamaUrl: options.ollamaUrl,
@@ -37,6 +37,7 @@ programme
         numCtx: Number(options.numCtx),
         verbose: options.verbose,
         cheminBdd: options.dbPath,
+        mcp: cfg.mcp ?? [],
       },
       db
     )
