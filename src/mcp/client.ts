@@ -33,6 +33,7 @@ export class ClientMcp {
     this.transport = new StdioClientTransport({
       command: config.commande,
       args: config.args,
+      stderr: 'ignore',
     })
     await this.client.connect(this.transport)
     await Promise.all([this.listerOutils(), this.listerRessources()])
