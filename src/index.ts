@@ -5,6 +5,7 @@ import { demarrerServeur } from './serveur/app.js'
 import { configDefaut } from './config.js'
 import { ouvrirBdd } from './bdd/connexion.js'
 import { indexerDossier } from './indexation/pipeline.js'
+import { surveillerDossier } from './indexation/watcher.js'
 
 const programme = new Command()
 
@@ -72,16 +73,33 @@ programme
         `SELECT
           (SELECT COUNT(*) FROM fichiers) AS fichiers,
           (SELECT COUNT(*) FROM chunks) AS chunks,
+          (SELECT COUNT(*) FROM chunks_vec_map) AS vecteurs,
           (SELECT MAX(indexe_le) FROM fichiers) AS derniere_indexation`
       )
-      .get() as { fichiers: number; chunks: number; derniere_indexation: string | null }
+      .get() as { fichiers: number; chunks: number; vecteurs: number; derniere_indexation: string | null }
 
     console.log(`Index BlueTang — ${options.dbPath}`)
     console.log(`Fichiers indexés : ${stats.fichiers}`)
     console.log(`Chunks total     : ${stats.chunks}`)
+    console.log(`Vecteurs (RAG sémantique) : ${stats.vecteurs}`)
     console.log(
       `Dernière mise à jour : ${stats.derniere_indexation ?? 'jamais'}`
     )
+  })
+
+programme
+  .command('watch [chemin]')
+  .description('Surveiller les modifications en temps réel et mettre à jour l\'index')
+  .option('-v, --verbose', 'Afficher les fichiers traités', false)
+  .option('--db-path <chemin>', 'Chemin de la base de données', configDefaut.cheminBdd)
+  .option('--ollama-url <url>', 'URL Ollama pour les embeddings sémantiques', configDefaut.ollamaUrl)
+  .action((chemin: string | undefined, options) => {
+    const racine = path.resolve(chemin ?? '.')
+    const db = ouvrirBdd(options.dbPath)
+    surveillerDossier(racine, db, {
+      verbose: options.verbose,
+      ollamaUrl: options.ollamaUrl,
+    })
   })
 
 programme.parse()

@@ -3,9 +3,9 @@ import { createHash } from 'crypto'
 import path from 'path'
 import ignore from 'ignore'
 
-const EXTENSIONS_INDEXEES = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.php', '.md'])
+export const EXTENSIONS_INDEXEES = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.php', '.md'])
 
-const DOSSIERS_EXCLUS = new Set([
+export const DOSSIERS_EXCLUS = new Set([
   'node_modules', '.git', 'dist', 'build', '.bluetang',
   '__pycache__', '.next', '.nuxt', 'coverage', '.cache',
 ])

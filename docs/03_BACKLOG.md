@@ -52,13 +52,15 @@
 
 **Prérequis** : `ollama pull nomic-embed-text`
 
-- [ ] Intégration sqlite-vec : table vecteurs liée aux chunks
-- [ ] Embedding des chunks via Ollama (`nomic-embed-text`, 768 dimensions)
-- [ ] Indexation incrémentale avec chokidar (re-embed uniquement les fichiers modifiés)
-- [ ] Recherche sémantique : embed question → cosinus top-K
-- [ ] Hybrid scoring : `0.4 × bm25 + 0.6 × cosinus`
-- [ ] Seuil de pertinence : si score max < 0.35, pas d'injection (passthrough pur)
-- [ ] Tests : questions en langage naturel sur la codebase
+- [x] Intégration sqlite-vec : table vecteurs liée aux chunks (via chunks_vec_map)
+- [x] Embedding des chunks via Ollama (`nomic-embed-text`, 768 dimensions)
+- [x] Indexation incrémentale avec chokidar (re-embed uniquement les fichiers modifiés)
+- [x] Recherche sémantique : embed question → cosinus top-K
+- [x] Hybrid scoring : `0.4 × bm25 + 0.6 × cosinus`
+- [x] Seuil de pertinence : si score max < 0.35, pas d'injection (passthrough pur)
+- [x] Tests : questions en langage naturel sur la codebase
+
+**Piège découvert** : sqlite-vec v0.1.7-alpha n'accepte pas de rowid explicite dans les INSERT (`INSERT INTO chunks_vec(rowid, embedding)` → erreur). Solution : auto-rowid + table de liaison `chunks_vec_map(vec_rowid, chunk_id)`.
 
 ---
 

@@ -43,8 +43,13 @@ export function initSchema(db: Database): void {
     END;
 
     CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(
-      chunk_id INTEGER PRIMARY KEY,
       embedding FLOAT[768]
+    );
+
+    -- Table de liaison : rowid vec0 → chunk_id (sqlite-vec n'accepte pas rowid explicite)
+    CREATE TABLE IF NOT EXISTS chunks_vec_map (
+      vec_rowid INTEGER PRIMARY KEY,
+      chunk_id  INTEGER NOT NULL REFERENCES chunks(id)
     );
   `)
 }

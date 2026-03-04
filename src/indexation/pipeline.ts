@@ -36,16 +36,21 @@ export async function indexerDossier(
   const stmtUpdateFichier = db.prepare(
     "UPDATE fichiers SET hash = ?, indexe_le = datetime('now') WHERE id = ?"
   )
-  // Supprimer les vecteurs AVANT les chunks (la sous-requête ne fonctionne plus après)
+  // Ordre de suppression : chunks_vec (via map) → chunks_vec_map → chunks
   const stmtSupprimerVec = db.prepare(
-    'DELETE FROM chunks_vec WHERE chunk_id IN (SELECT id FROM chunks WHERE fichier_id = ?)'
+    'DELETE FROM chunks_vec WHERE rowid IN (SELECT vec_rowid FROM chunks_vec_map WHERE chunk_id IN (SELECT id FROM chunks WHERE fichier_id = ?))'
+  )
+  const stmtSupprimerVecMap = db.prepare(
+    'DELETE FROM chunks_vec_map WHERE chunk_id IN (SELECT id FROM chunks WHERE fichier_id = ?)'
   )
   const stmtSupprimerChunks = db.prepare('DELETE FROM chunks WHERE fichier_id = ?')
   const stmtInsertChunk = db.prepare(
     'INSERT INTO chunks (fichier_id, chemin, debut, fin, contenu, langage) VALUES (?, ?, ?, ?, ?, ?)'
   )
-  const stmtInsertVec = db.prepare(
-    'INSERT INTO chunks_vec(chunk_id, embedding) VALUES (?, ?)'
+  // sqlite-vec vec0 n'accepte pas de rowid explicite → mapping via chunks_vec_map
+  const stmtInsertVec = db.prepare('INSERT INTO chunks_vec(embedding) VALUES (?)')
+  const stmtInsertVecMap = db.prepare(
+    'INSERT INTO chunks_vec_map(vec_rowid, chunk_id) VALUES (?, ?)'
   )
 
   for (const cheminFichier of fichiers) {
@@ -67,6 +72,7 @@ export async function indexerDossier(
 
       if (existant) {
         stmtSupprimerVec.run(existant.id)
+        stmtSupprimerVecMap.run(existant.id)
         stmtSupprimerChunks.run(existant.id)
         stmtUpdateFichier.run(hash, existant.id)
         fichierId = existant.id
@@ -90,7 +96,8 @@ export async function indexerDossier(
       for (let i = 0; i < chunks.length; i++) {
         try {
           const vecteur = await obtenirEmbedding(chunks[i].contenu, ollamaUrl)
-          stmtInsertVec.run(chunkIds[i], vecToJson(vecteur))
+          const vecRes = stmtInsertVec.run(vecToJson(vecteur))
+          stmtInsertVecMap.run(Number(vecRes.lastInsertRowid), chunkIds[i])
         } catch (err) {
           if (verbose) {
             console.warn(`  ⚠ embed échoué pour chunk ${chunkIds[i]}: ${err}`)

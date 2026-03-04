@@ -8,7 +8,11 @@ export function ajouterRoutesCompletions(app: Hono, config: Config, db: Db | nul
     const corps = await c.req.json()
 
     if (db && Array.isArray(corps.messages)) {
-      corps.messages = enrichirMessages(corps.messages as { role: string; content: string }[], db)
+      corps.messages = await enrichirMessages(
+        corps.messages as { role: string; content: string }[],
+        db,
+        config.ollamaUrl
+      )
     }
 
     let reponseOllama: Response
