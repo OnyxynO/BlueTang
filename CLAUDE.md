@@ -42,8 +42,10 @@ npm run build
 
 ```
 src/
-├── index.ts              # CLI (Commander) : serve, index, status
+├── index.ts              # CLI (Commander) : init, serve, index, status, watch
 ├── config.ts             # Interface Config + valeurs par défaut
+├── cli/
+│   └── init.ts           # lancerInit() — wizard interactif @inquirer/prompts
 ├── bdd/
 │   ├── connexion.ts      # ouvrirBdd() + type Db
 │   └── schema.ts         # CREATE TABLE fichiers, chunks, chunks_fts (FTS5)
@@ -54,10 +56,15 @@ src/
 ├── rag/
 │   ├── recherche.ts      # rechercherBM25() — FTS5 + OR entre termes
 │   └── assembleur.ts     # enrichirMessages() — injection contexte dans le prompt
+├── mcp/
+│   ├── client.ts         # ClientMcp (SDK stdio, stderr: 'ignore')
+│   ├── gestionnaire.ts   # GestionnaireMcp (pool clients)
+│   ├── pertinence.ts     # scorerPertinenceMcp (keyword matching, seuil 0.3)
+│   └── injecteur.ts      # injecterContexteMcp (resources → message système)
 └── serveur/
     ├── app.ts            # creerApp() + demarrerServeur()
     ├── completions.ts    # POST /v1/chat/completions + enrichissement RAG
-    └── modeles.ts        # GET /v1/models, /health, POST /v1/embeddings
+    └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
 ```
 
 ## Phases
@@ -66,9 +73,11 @@ src/
 |-------|------|---------|
 | 1 — Proxy transparent | ✅ Terminé | Passthrough pur, SSE streaming |
 | 2 — RAG BM25 | ✅ Terminé | Chunking heuristique + FTS5 SQLite + CLI index/status |
-| 3 — RAG sémantique + hybrid | 🔵 Prêt à démarrer | sqlite-vec + nomic-embed-text (prérequis validés) |
-| 4 — Mémoire de conversation | ⬜ À faire | Sessions SQLite + résumé progressif |
-| 5 — Finition | ⬜ À faire | tree-sitter AST, benchmarks, npm publish |
+| 3 — RAG sémantique + hybrid | ✅ Terminé | sqlite-vec, nomic-embed-text (768 dim), hybrid 0.4/0.6, watcher |
+| 4 — Mémoire de conversation | ✅ Terminé | Sessions SQLite + résumé progressif + faits regex |
+| 5 — Finition | ✅ Terminé | tree-sitter AST, .bluetang.json, /stats, benchmark (Recall@1=90%), README |
+| 6 — Client MCP | ✅ Terminé | ClientMcp stdio, GestionnaireMcp, pertinence, tool_calls agentique |
+| 7 — DX & init | ✅ Terminé | Commande `bluetang init` (wizard @inquirer/prompts) |
 
 ## Suivi de projet
 
@@ -85,17 +94,23 @@ src/
 | POST | `/v1/embeddings` | Passthrough vers Ollama |
 | GET | `/health` | État proxy + version Ollama |
 
-## Commandes Phase 2
+## Commandes complètes
 
 ```bash
+# Setup initial interactif (génère .bluetang.json + indexe si souhaité)
+npm run dev -- init
+
 # Indexer la codebase courante
-node dist/index.js index ./src
+npm run dev -- index ./src
 
 # Voir les stats de l'index
-node dist/index.js status
+npm run dev -- status
+
+# Surveiller les modifications en temps réel
+npm run dev -- watch ./src
 
 # Lancer le proxy avec RAG actif
-node dist/index.js serve
+npm run dev -- serve
 ```
 
 ## Configuration Continue.dev
@@ -133,3 +148,5 @@ node dist/index.js serve
 - **qwen3:1.7b minimum** recommandé pour exploiter le contexte RAG injecté — 0.6b trop limité
 - **sqlite-vec** : ne pas passer `Float32Array` ou `Buffer` — utiliser du JSON string `'[1.0, 2.0, ...]'` pour les insertions et les requêtes MATCH
 - **Phase 3 prérequis validés** : `nomic-embed-text` (768 dim) + `sqlite-vec` v0.1.7 fonctionnels
+- **`StdioClientTransport` stderr** : passer `stderr: 'ignore'` pour supprimer les logs du processus MCP enfant (défaut = `'inherit'`, pollue la console)
+- **`bluetang init` détection dev/prod** : vérifier `process.argv[1]?.endsWith('src/index.ts')` pour afficher `npm run dev -- serve` vs `bluetang serve`
