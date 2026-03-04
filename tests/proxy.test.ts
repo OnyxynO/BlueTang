@@ -24,7 +24,7 @@ describe('/health', () => {
     expect(rep.status).toBe(200)
     expect(donnees.statut).toBe('ok')
     expect(donnees.ollama).toBe('0.5.1')
-    expect(donnees.proxy).toBe('0.1.0')
+    expect(donnees.proxy).toBe('0.2.0')
   })
 
   it('retourne 503 si Ollama est inaccessible', async () => {

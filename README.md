@@ -1,0 +1,230 @@
+# BlueTang
+
+> Proxy intelligent entre un client LLM et Ollama — RAG codebase + mémoire de conversation
+
+BlueTang s'intercale de manière transparente entre ton client LLM (Continue.dev, Open WebUI, etc.) et Ollama. Il enrichit automatiquement chaque prompt avec :
+
+- **RAG hybride** — extraits de code pertinents (BM25 + recherche sémantique via `nomic-embed-text`)
+- **Mémoire de conversation** — résumé progressif + extraction de faits, persistés en SQLite
+- **Chunking AST** — découpage syntaxiquement exact du code via tree-sitter (TS, JS, Python, PHP)
+
+Le client ne voit rien : il pointe sur `:11435` au lieu de `:11434`, tout le reste fonctionne comme avant.
+
+```
+Client LLM → bluetang :11435 → [RAG + mémoire] → Ollama :11434
+```
+
+---
+
+## Installation
+
+```bash
+npm install -g bluetang
+# ou sans installation globale :
+npx bluetang serve
+```
+
+**Prérequis**
+- Node.js ≥ 22
+- [Ollama](https://ollama.ai) en cours d'exécution
+- `ollama pull nomic-embed-text` pour le RAG sémantique (optionnel)
+
+---
+
+## Démarrage rapide
+
+```bash
+# 1. Indexer ta codebase
+bluetang index ./src --ollama-url http://localhost:11434
+
+# 2. Lancer le proxy
+bluetang serve
+
+# 3. Pointer ton client LLM sur http://localhost:11435/v1
+```
+
+---
+
+## Configuration
+
+### Fichier `.bluetang.json`
+
+Crée un fichier `.bluetang.json` à la racine de ton projet pour éviter de répéter les options CLI :
+
+```json
+{
+  "port": 11435,
+  "ollamaUrl": "http://localhost:11434",
+  "modele": "qwen3:1.7b",
+  "numCtx": 16384,
+  "cheminBdd": ".bluetang/index.db"
+}
+```
+
+Les options CLI ont priorité sur ce fichier.
+
+### Exemple Continue.dev
+
+```json
+{
+  "models": [{
+    "title": "Qwen3 (BlueTang)",
+    "provider": "openai",
+    "model": "qwen3:1.7b",
+    "apiBase": "http://localhost:11435/v1",
+    "apiKey": "not-needed"
+  }]
+}
+```
+
+---
+
+## Commandes
+
+### `bluetang serve`
+
+Lance le proxy avec RAG et mémoire actifs.
+
+```bash
+bluetang serve [options]
+
+Options :
+  -p, --port <port>        Port du proxy (défaut : 11435)
+  --ollama-url <url>       URL Ollama (défaut : http://localhost:11434)
+  -m, --model <nom>        Modèle par défaut (défaut : qwen3:1.7b)
+  --num-ctx <n>            Taille du contexte en tokens (défaut : 16384)
+  --db-path <chemin>       Base de données (défaut : .bluetang/index.db)
+  -v, --verbose            Logs détaillés
+```
+
+### `bluetang index [chemin]`
+
+Indexe un dossier pour le RAG. Sans `--ollama-url`, seul le BM25 est activé.
+
+```bash
+bluetang index ./src
+bluetang index ./src --ollama-url http://localhost:11434   # + embeddings sémantiques
+bluetang index ./src -v                                    # afficher les fichiers traités
+```
+
+Langages supportés : TypeScript, JavaScript, Python, PHP, Markdown.
+
+### `bluetang watch [chemin]`
+
+Surveille les modifications en temps réel et met à jour l'index automatiquement.
+
+```bash
+bluetang watch ./src
+bluetang watch ./src --ollama-url http://localhost:11434
+```
+
+### `bluetang status`
+
+Affiche les statistiques de l'index courant.
+
+```bash
+bluetang status
+# Fichiers indexés : 14
+# Chunks total     : 87
+# Vecteurs         : 87
+# Sessions mémoire : 3 (42 messages)
+# Dernière MAJ     : 2026-03-04 09:30:00
+```
+
+---
+
+## Endpoints API
+
+| Méthode | Route               | Description                              |
+|---------|---------------------|------------------------------------------|
+| POST    | `/v1/chat/completions` | Proxy enrichi (RAG + mémoire)         |
+| GET     | `/v1/models`        | Liste les modèles Ollama                 |
+| POST    | `/v1/embeddings`    | Passthrough vers Ollama                  |
+| GET     | `/health`           | État du proxy et d'Ollama               |
+| GET     | `/stats`            | Métriques temps réel (index + mémoire)  |
+
+### Exemple `/stats`
+
+```json
+{
+  "version": "0.2.0",
+  "index": { "fichiers": 14, "chunks": 87, "vecteurs": 87, "derniere_indexation": "2026-03-04T09:30:00" },
+  "memoire": { "sessions": 3, "messages": 42 },
+  "ollama": { "url": "http://localhost:11434", "accessible": true, "version": "0.6.0" },
+  "config": { "port": 11435, "modele": "qwen3:1.7b", "numCtx": 16384 }
+}
+```
+
+---
+
+## Architecture
+
+```
+src/
+├── index.ts              # CLI (Commander) : serve, index, watch, status
+├── config.ts             # Config + chargement .bluetang.json
+├── bdd/
+│   ├── connexion.ts      # ouvrirBdd() + sqlite-vec
+│   └── schema.ts         # Tables : fichiers, chunks, chunks_fts, chunks_vec, sessions…
+├── indexation/
+│   ├── chunker.ts        # Découpage AST tree-sitter (TS/JS/Python/PHP) + fallback regex
+│   ├── scanner.ts        # Scan dossiers, filtre .gitignore
+│   ├── pipeline.ts       # Indexation batch : chunks + embeddings
+│   └── watcher.ts        # Surveillance temps réel (chokidar)
+├── rag/
+│   ├── embedder.ts       # Embeddings via Ollama nomic-embed-text
+│   ├── recherche.ts      # BM25 (FTS5) + sémantique (sqlite-vec) + hybride
+│   └── assembleur.ts     # Injection contexte dans le prompt
+├── memoire/
+│   ├── session.ts        # Identification session, persistance, injection mémoire
+│   └── resume.ts         # Résumé progressif + extraction de faits
+└── serveur/
+    ├── app.ts            # Hono app + démarrage
+    ├── completions.ts    # POST /v1/chat/completions avec enrichissement
+    └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
+```
+
+### Flux d'une requête
+
+```
+1. Client envoie POST /v1/chat/completions
+2. BlueTang identifie la session (SHA-256 des 3 premiers messages)
+3. Injecte la mémoire (résumé + faits) en premier message système
+4. Recherche hybride BM25 + cosinus → injecte les extraits de code pertinents
+5. Forward vers Ollama
+6. Capture la réponse (stream ou JSON)
+7. Sauvegarde l'échange + mise à jour du résumé si nécessaire
+```
+
+---
+
+## Développement
+
+```bash
+git clone https://github.com/OnyxynO/BlueTang
+cd BlueTang
+npm install
+
+npm run dev -- serve -v          # lancer en mode dev
+npm test                          # tests (51 tests)
+npm run typecheck                 # vérification TypeScript
+npm run build                     # build pour production
+
+npx tsx scripts/benchmark.ts     # benchmark BM25 recall sur la codebase
+```
+
+---
+
+## Pièges connus
+
+- **FTS5 tokenizer** : ne découpe pas le camelCase — `envoyerEmail` est un token unique
+- **sqlite-vec** v0.1.7-alpha : pas de rowid explicite en INSERT → table de liaison `chunks_vec_map`
+- **Grammaires tree-sitter** : modules CJS → utiliser `createRequire(import.meta.url)` en ESM
+- **Mémoire de session** : identification SHA-256 des 3 premiers messages (best-effort — si le client ne renvoie pas l'historique complet, la session peut ne pas être retrouvée)
+- **Modèle minimum** : `qwen3:1.7b` recommandé — les modèles 0.6b exploitent mal le contexte RAG injecté
+
+---
+
+## Licence
+
+MIT

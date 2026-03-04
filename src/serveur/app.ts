@@ -15,7 +15,7 @@ export function creerApp(config: Config, db: Db | null = null): Hono {
   }
 
   ajouterRoutesCompletions(app, config, db)
-  ajouterRoutesModeles(app, config)
+  ajouterRoutesModeles(app, config, db)
 
   return app
 }
