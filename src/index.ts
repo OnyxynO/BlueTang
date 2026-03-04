@@ -6,6 +6,7 @@ import { configDefaut, chargerConfigFichier } from './config.js'
 import { ouvrirBdd } from './bdd/connexion.js'
 import { indexerDossier } from './indexation/pipeline.js'
 import { surveillerDossier } from './indexation/watcher.js'
+import { lancerInit } from './cli/init.js'
 
 // Les options du fichier .bluetang.json servent de valeurs par défaut
 // que les options CLI peuvent surcharger
@@ -109,6 +110,13 @@ programme
       verbose: options.verbose,
       ollamaUrl: options.ollamaUrl,
     })
+  })
+
+programme
+  .command('init')
+  .description('Configurer BlueTang de manière interactive')
+  .action(async () => {
+    await lancerInit()
   })
 
 programme.parse()
