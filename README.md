@@ -1,17 +1,18 @@
 # BlueTang
 
-> Proxy intelligent entre un client LLM et Ollama — RAG codebase + mémoire de conversation
+> Proxy intelligent entre un client LLM et Ollama — RAG codebase + mémoire + client MCP
 
 BlueTang s'intercale de manière transparente entre ton client LLM (Continue.dev, Open WebUI, etc.) et Ollama. Il enrichit automatiquement chaque prompt avec :
 
 - **RAG hybride** — extraits de code pertinents (BM25 + recherche sémantique via `nomic-embed-text`)
 - **Mémoire de conversation** — résumé progressif + extraction de faits, persistés en SQLite
 - **Chunking AST** — découpage syntaxiquement exact du code via tree-sitter (TS, JS, Python, PHP)
+- **Client MCP** — connexion à des serveurs MCP stdio (filesystem, bases de données, APIs…) avec injection de contexte et exécution agentique des tools
 
 Le client ne voit rien : il pointe sur `:11435` au lieu de `:11434`, tout le reste fonctionne comme avant.
 
 ```
-Client LLM → bluetang :11435 → [RAG + mémoire] → Ollama :11434
+Client LLM → bluetang :11435 → [RAG + mémoire + MCP] → Ollama :11434
 ```
 
 ---
@@ -57,11 +58,32 @@ Crée un fichier `.bluetang.json` à la racine de ton projet pour éviter de ré
   "ollamaUrl": "http://localhost:11434",
   "modele": "qwen3:1.7b",
   "numCtx": 16384,
-  "cheminBdd": ".bluetang/index.db"
+  "cheminBdd": ".bluetang/index.db",
+  "mcp": [
+    {
+      "nom": "filesystem",
+      "commande": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/chemin/vers/dossier"]
+    }
+  ]
 }
 ```
 
 Les options CLI ont priorité sur ce fichier.
+
+### Serveurs MCP supportés
+
+BlueTang se connecte à n'importe quel serveur MCP stdio. Exemples :
+
+| Serveur | Commande | Capabilities |
+|---------|----------|-------------|
+| `@modelcontextprotocol/server-filesystem` | `npx -y @modelcontextprotocol/server-filesystem /dossier` | read_file, list_directory, write_file… |
+| `@modelcontextprotocol/server-sqlite` | `npx -y @modelcontextprotocol/server-sqlite chemin.db` | query, list_tables… |
+| `@modelcontextprotocol/server-github` | `npx -y @modelcontextprotocol/server-github` | issues, pull_requests, code search… |
+
+BlueTang détermine automatiquement si un serveur MCP est pertinent pour chaque requête (keyword matching sur les noms et descriptions des tools). Si pertinent :
+1. Les **resources** disponibles sont lues et injectées comme contexte système
+2. Les **tools** sont exposés au modèle — si Ollama retourne un `tool_call`, BlueTang l'exécute et re-soumet (jusqu'à 3 tours agentiques)
 
 ### Exemple Continue.dev
 
@@ -147,7 +169,7 @@ bluetang status
 
 ```json
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "index": { "fichiers": 14, "chunks": 87, "vecteurs": 87, "derniere_indexation": "2026-03-04T09:30:00" },
   "memoire": { "sessions": 3, "messages": 42 },
   "ollama": { "url": "http://localhost:11434", "accessible": true, "version": "0.6.0" },
@@ -162,7 +184,7 @@ bluetang status
 ```
 src/
 ├── index.ts              # CLI (Commander) : serve, index, watch, status
-├── config.ts             # Config + chargement .bluetang.json
+├── config.ts             # Config + chargement .bluetang.json (incl. MCP)
 ├── bdd/
 │   ├── connexion.ts      # ouvrirBdd() + sqlite-vec
 │   └── schema.ts         # Tables : fichiers, chunks, chunks_fts, chunks_vec, sessions…
@@ -178,9 +200,14 @@ src/
 ├── memoire/
 │   ├── session.ts        # Identification session, persistance, injection mémoire
 │   └── resume.ts         # Résumé progressif + extraction de faits
+├── mcp/
+│   ├── client.ts         # ClientMcp — connexion stdio, listTools, callTool, readResource
+│   ├── gestionnaire.ts   # GestionnaireMcp — pool de clients (un par serveur)
+│   ├── pertinence.ts     # Keyword matching requête vs tools/resources (seuil 0.3)
+│   └── injecteur.ts      # Injection resources + retour des tools disponibles
 └── serveur/
-    ├── app.ts            # Hono app + démarrage
-    ├── completions.ts    # POST /v1/chat/completions avec enrichissement
+    ├── app.ts            # Hono app + init MCP + démarrage
+    ├── completions.ts    # POST /v1/chat/completions : mémoire → RAG → MCP → Ollama
     └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
 ```
 
@@ -191,9 +218,11 @@ src/
 2. BlueTang identifie la session (SHA-256 des 3 premiers messages)
 3. Injecte la mémoire (résumé + faits) en premier message système
 4. Recherche hybride BM25 + cosinus → injecte les extraits de code pertinents
-5. Forward vers Ollama
-6. Capture la réponse (stream ou JSON)
-7. Sauvegarde l'échange + mise à jour du résumé si nécessaire
+5. Si serveurs MCP configurés → score pertinence → injecte resources + expose tools
+6. Forward vers Ollama (avec tools si pertinents)
+7. Si Ollama retourne tool_calls → exécute via MCP, re-soumet (max 3 tours)
+8. Capture la réponse (stream ou JSON)
+9. Sauvegarde l'échange + mise à jour du résumé si nécessaire
 ```
 
 ---
@@ -206,7 +235,7 @@ cd BlueTang
 npm install
 
 npm run dev -- serve -v          # lancer en mode dev
-npm test                          # tests (51 tests)
+npm test                          # tests (64 tests)
 npm run typecheck                 # vérification TypeScript
 npm run build                     # build pour production
 

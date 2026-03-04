@@ -1,11 +1,16 @@
 {
   "name": "bluetang",
-  "version": "0.1.0",
-  "description": "Proxy intelligent entre client LLM et Ollama — RAG + mémoire de conversation",
+  "version": "0.3.0",
+  "description": "Proxy intelligent entre client LLM et Ollama — RAG + mémoire + client MCP",
   "type": "module",
+  "main": "./dist/index.js",
   "bin": {
     "bluetang": "./dist/index.js"
   },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup src/index.ts --format esm --target node22 --clean",
