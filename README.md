@@ -57,7 +57,7 @@ bluetang serve
 
 BlueTang ajoute un surcoût de **50–200ms** par requête (enrichissement RAG + session). Sur des générations qui durent 10–300s avec un LLM local, ce surcoût est imperceptible.
 
-Benchmark sur Mac mini M2 avec `qwen3:8b` :
+Benchmark sur Mac mini M4 avec `qwen3:8b` :
 
 | Question | Ollama direct | Via BlueTang | Surcoût |
 |----------|--------------|-------------|---------|
@@ -70,7 +70,7 @@ Benchmark sur Mac mini M2 avec `qwen3:8b` :
 
 ### Fichier `.bluetang.json`
 
-Crée un fichier `.bluetang.json` à la racine de ton projet pour éviter de répéter les options CLI :
+Ce fichier est généré automatiquement par `bluetang init`. Il permet de ne pas répéter les options CLI à chaque commande. Format complet :
 
 ```json
 {
