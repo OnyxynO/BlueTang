@@ -2,6 +2,10 @@
 
 > Proxy intelligent entre un client LLM et Ollama — RAG codebase + mémoire + client MCP
 
+![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-orange)
+
 BlueTang s'intercale de manière transparente entre ton client LLM (Continue.dev, Open WebUI, etc.) et Ollama. Il enrichit automatiquement chaque prompt avec :
 
 - **RAG hybride** — extraits de code pertinents (BM25 + recherche sémantique via `nomic-embed-text`)
@@ -35,14 +39,30 @@ npx bluetang serve
 ## Démarrage rapide
 
 ```bash
-# 1. Indexer ta codebase
+# 1. Configuration interactive (génère .bluetang.json)
+bluetang init
+
+# 2. Indexer ta codebase
 bluetang index ./src --ollama-url http://localhost:11434
 
-# 2. Lancer le proxy
+# 3. Lancer le proxy
 bluetang serve
 
-# 3. Pointer ton client LLM sur http://localhost:11435/v1
+# 4. Pointer ton client LLM sur http://localhost:11435/v1
 ```
+
+---
+
+## Performance
+
+BlueTang ajoute un surcoût de **50–200ms** par requête (enrichissement RAG + session). Sur des générations qui durent 10–300s avec un LLM local, ce surcoût est imperceptible.
+
+Benchmark sur Mac mini M2 avec `qwen3:8b` :
+
+| Question | Ollama direct | Via BlueTang | Surcoût |
+|----------|--------------|-------------|---------|
+| Simple (boucle Python) | 29.5s | 28.2s | < 1s (bruit) |
+| Complexe (webhook FastAPI) | 339.9s | 204.3s | < 1s (variabilité modèle) |
 
 ---
 
@@ -99,9 +119,33 @@ BlueTang détermine automatiquement si un serveur MCP est pertinent pour chaque 
 }
 ```
 
+### Utilisation sur le réseau local (LAN)
+
+BlueTang écoute sur `0.0.0.0` par défaut — il est accessible depuis d'autres machines du réseau sans configuration supplémentaire.
+
+```json
+{
+  "models": [{
+    "title": "BlueTang (Mac mini)",
+    "provider": "openai",
+    "model": "qwen3:8b",
+    "apiBase": "http://192.168.1.X:11435/v1",
+    "apiKey": "not-needed"
+  }]
+}
+```
+
 ---
 
 ## Commandes
+
+### `bluetang init`
+
+Assistant de configuration interactif. Génère `.bluetang.json` et indexe la codebase si souhaité.
+
+```bash
+bluetang init
+```
 
 ### `bluetang serve`
 
@@ -153,6 +197,17 @@ bluetang status
 # Dernière MAJ     : 2026-03-04 09:30:00
 ```
 
+### `bluetang clean`
+
+Supprime l'index et/ou les sessions. Crée une sauvegarde `.db.bak` avant suppression.
+
+```bash
+bluetang clean --index      # supprime l'index (fichiers, chunks, vecteurs)
+bluetang clean --sessions   # supprime les sessions de mémoire
+bluetang clean --all        # supprime tout
+bluetang clean --all -y     # sans confirmation (scripts, SSH)
+```
+
 ---
 
 ## Endpoints API
@@ -183,18 +238,22 @@ bluetang status
 
 ```
 src/
-├── index.ts              # CLI (Commander) : serve, index, watch, status
-├── config.ts             # Config + chargement .bluetang.json (incl. MCP)
+├── index.ts              # CLI (Commander) : serve, index, watch, status, clean, init
+├── config.ts             # Config + validation Zod + chargement .bluetang.json
+├── version.ts            # VERSION lue dynamiquement depuis package.json
 ├── bdd/
 │   ├── connexion.ts      # ouvrirBdd() + sqlite-vec
 │   └── schema.ts         # Tables : fichiers, chunks, chunks_fts, chunks_vec, sessions…
+├── cli/
+│   ├── init.ts           # Assistant interactif (@inquirer/prompts)
+│   └── clean.ts          # Suppression index/sessions avec sauvegarde
 ├── indexation/
 │   ├── chunker.ts        # Découpage AST tree-sitter (TS/JS/Python/PHP) + fallback regex
 │   ├── scanner.ts        # Scan dossiers, filtre .gitignore
-│   ├── pipeline.ts       # Indexation batch : chunks + embeddings
+│   ├── pipeline.ts       # Indexation batch : chunks + embeddings (batching par 20)
 │   └── watcher.ts        # Surveillance temps réel (chokidar)
 ├── rag/
-│   ├── embedder.ts       # Embeddings via Ollama nomic-embed-text
+│   ├── embedder.ts       # Embeddings via Ollama nomic-embed-text (batch + single)
 │   ├── recherche.ts      # BM25 (FTS5) + sémantique (sqlite-vec) + hybride
 │   └── assembleur.ts     # Injection contexte dans le prompt
 ├── memoire/
@@ -205,10 +264,12 @@ src/
 │   ├── gestionnaire.ts   # GestionnaireMcp — pool de clients (un par serveur)
 │   ├── pertinence.ts     # Keyword matching requête vs tools/resources (seuil 0.3)
 │   └── injecteur.ts      # Injection resources + retour des tools disponibles
-└── serveur/
-    ├── app.ts            # Hono app + init MCP + démarrage
-    ├── completions.ts    # POST /v1/chat/completions : mémoire → RAG → MCP → Ollama
-    └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
+├── serveur/
+│   ├── app.ts            # Hono app + init MCP + démarrage + vérif modèle
+│   ├── completions.ts    # POST /v1/chat/completions : mémoire → RAG → MCP → Ollama
+│   └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
+└── utils/
+    └── stopwords.ts      # Stopwords partagés (RAG + MCP)
 ```
 
 ### Flux d'une requête
@@ -244,12 +305,83 @@ npx tsx scripts/benchmark.ts     # benchmark BM25 recall sur la codebase
 
 ---
 
+## Troubleshooting
+
+### Port déjà utilisé
+
+```
+Error: listen EADDRINUSE :::11435
+```
+
+Un autre processus occupe le port. Changer le port dans `.bluetang.json` ou via `--port` :
+
+```bash
+bluetang serve --port 11436
+```
+
+### Modèle introuvable au démarrage
+
+```
+⚠ Modèle "qwen3:1.7b" introuvable dans Ollama. Modèles disponibles : ...
+```
+
+Installer le modèle manquant :
+
+```bash
+ollama pull qwen3:1.7b
+```
+
+### Ollama inaccessible (503)
+
+```json
+{ "error": "Ollama inaccessible : fetch failed" }
+```
+
+Vérifier qu'Ollama tourne et que l'URL est correcte :
+
+```bash
+curl http://localhost:11434/api/version   # doit retourner {"version":"..."}
+brew services start ollama                # si installé via Homebrew
+```
+
+### Pas de contexte RAG injecté
+
+Vérifier que l'index n'est pas vide :
+
+```bash
+bluetang status
+```
+
+Si `Chunks total : 0`, réindexer :
+
+```bash
+bluetang index ./src --ollama-url http://localhost:11434
+```
+
+### Base de données corrompue
+
+```
+SqliteError: database disk image is malformed
+```
+
+Supprimer la base et réindexer :
+
+```bash
+bluetang clean --all -y
+bluetang index ./src --ollama-url http://localhost:11434
+```
+
+### Sessions non retrouvées (mémoire perdue)
+
+La session est identifiée par un hash des 3 premiers messages. Si le client LLM ne renvoie pas l'historique complet à chaque requête, la session peut ne pas être retrouvée. C'est un comportement normal (best-effort).
+
+---
+
 ## Pièges connus
 
 - **FTS5 tokenizer** : ne découpe pas le camelCase — `envoyerEmail` est un token unique
 - **sqlite-vec** v0.1.7-alpha : pas de rowid explicite en INSERT → table de liaison `chunks_vec_map`
 - **Grammaires tree-sitter** : modules CJS → utiliser `createRequire(import.meta.url)` en ESM
-- **Mémoire de session** : identification SHA-256 des 3 premiers messages (best-effort — si le client ne renvoie pas l'historique complet, la session peut ne pas être retrouvée)
 - **Modèle minimum** : `qwen3:1.7b` recommandé — les modèles 0.6b exploitent mal le contexte RAG injecté
 
 ---
