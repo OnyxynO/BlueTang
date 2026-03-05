@@ -1,5 +1,6 @@
 import type { Db } from '../bdd/connexion.js'
 import { obtenirEmbedding, vecToJson } from './embedder.js'
+import { STOPWORDS } from '../utils/stopwords.js'
 
 export interface ChunkResultat {
   id: number
@@ -10,15 +11,6 @@ export interface ChunkResultat {
   langage: string
   score: number
 }
-
-// Mots trop courts ou trop communs pour être pertinents dans une recherche de code
-const STOPWORDS = new Set([
-  'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'en', 'et', 'ou', 'si',
-  'que', 'qui', 'quoi', 'dont', 'où', 'que', 'est', 'son', 'ses', 'sur', 'par',
-  'pour', 'dans', 'avec', 'sans', 'sous', 'aux', 'au', 'ce', 'se', 'sa', 'il',
-  'the', 'a', 'an', 'is', 'in', 'of', 'to', 'and', 'or', 'for', 'with', 'at',
-  'do', 'what', 'how', 'why', 'when', 'where', 'does', 'fait', 'fait', 'comment',
-])
 
 function construireRequeteFTS5(requete: string): string {
   // Garder uniquement les termes significatifs (longueur > 2, hors stopwords)
@@ -50,7 +42,8 @@ export function rechercherBM25(requete: string, db: Db, topK = 5): ChunkResultat
          LIMIT ?`
       )
       .all(matchQuery, topK)
-  } catch {
+  } catch (err) {
+    console.error(`[RAG] Erreur BM25 : ${err instanceof Error ? err.message : String(err)}`)
     return []
   }
 }
@@ -77,7 +70,8 @@ export async function rechercherSemantique(
   let vecteur: number[]
   try {
     vecteur = await obtenirEmbedding(requete, ollamaUrl)
-  } catch {
+  } catch (err) {
+    console.error(`[RAG] Erreur embedding requête : ${err instanceof Error ? err.message : String(err)}`)
     return []
   }
 
@@ -111,7 +105,8 @@ export async function rechercherSemantique(
       }
     }
     return resultats
-  } catch {
+  } catch (err) {
+    console.error(`[RAG] Erreur KNN : ${err instanceof Error ? err.message : String(err)}`)
     return []
   }
 }

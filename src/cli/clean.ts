@@ -5,7 +5,7 @@ import type { Db } from '../bdd/connexion.js'
 export async function lancerClean(
   db: Db,
   cheminBdd: string,
-  options: { index?: boolean; sessions?: boolean; all?: boolean }
+  options: { index?: boolean; sessions?: boolean; all?: boolean; oui?: boolean }
 ): Promise<void> {
   const supprimerIndex = options.all || options.index || false
   const supprimerSessions = options.all || options.sessions || false
@@ -29,7 +29,7 @@ export async function lancerClean(
     console.log(`Sessions : ${sessions} session(s), ${messages} message(s)`)
   }
 
-  const ok = await confirm({ message: 'Confirmer la suppression ?', default: false })
+  const ok = options.oui || await confirm({ message: 'Confirmer la suppression ?', default: false })
   if (!ok) {
     console.log('Annulé.')
     return

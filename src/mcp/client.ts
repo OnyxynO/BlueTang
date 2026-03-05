@@ -30,13 +30,19 @@ export class ClientMcp {
     this.client = new Client({ name: 'bluetang', version: VERSION })
   }
 
-  async connecter(config: McpServeurConfig): Promise<void> {
+  async connecter(config: McpServeurConfig, timeoutMs = 5000): Promise<void> {
     this.transport = new StdioClientTransport({
       command: config.commande,
       args: config.args,
       stderr: 'ignore',
     })
-    await this.client.connect(this.transport)
+    // C7 : timeout sur la connexion MCP
+    await Promise.race([
+      this.client.connect(this.transport),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout connexion MCP après ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ])
     await Promise.all([this.listerOutils(), this.listerRessources()])
   }
 
@@ -49,7 +55,8 @@ export class ClientMcp {
         inputSchema: (t.inputSchema as Record<string, unknown>) ?? {},
         clientNom: this.nom,
       }))
-    } catch {
+    } catch (err) {
+      console.error(`[MCP] ${this.nom} — erreur listTools : ${err instanceof Error ? err.message : String(err)}`)
       this.tools = []
     }
     return this.tools
@@ -65,7 +72,8 @@ export class ClientMcp {
         mimeType: r.mimeType,
         clientNom: this.nom,
       }))
-    } catch {
+    } catch (err) {
+      console.error(`[MCP] ${this.nom} — erreur listResources : ${err instanceof Error ? err.message : String(err)}`)
       this.resources = []
     }
     return this.resources

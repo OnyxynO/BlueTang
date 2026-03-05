@@ -1,13 +1,5 @@
 import type { ClientMcp, ToolMcp, ResourceMcp } from './client.js'
-
-// Réutilise la même liste de stopwords que le RAG
-const STOPWORDS = new Set([
-  'le', 'la', 'les', 'un', 'une', 'des', 'du', 'de', 'en', 'et', 'ou', 'si',
-  'que', 'qui', 'quoi', 'dont', 'où', 'est', 'son', 'ses', 'sur', 'par',
-  'pour', 'dans', 'avec', 'sans', 'sous', 'aux', 'au', 'ce', 'se', 'sa', 'il',
-  'the', 'a', 'an', 'is', 'in', 'of', 'to', 'and', 'or', 'for', 'with', 'at',
-  'do', 'what', 'how', 'why', 'when', 'where', 'does', 'fait', 'comment',
-])
+import { STOPWORDS } from '../utils/stopwords.js'
 
 const SEUIL_MCP = 0.3
 

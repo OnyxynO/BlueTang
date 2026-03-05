@@ -163,6 +163,11 @@ BlueTang est un projet bien structuré, fonctionnel, avec une architecture clair
   - `--all` : équivalent à `--index --sessions`
   - Confirmation interactive avant suppression (`confirm("Supprimer X fichiers et Y chunks ?")`)
 
+### SUP-01b 🟠 `bluetang clean` plante sans TTY (SSH non-interactif)
+- **Découvert** : test Phase B (SSH vers Mac mini)
+- **Problème** : `@inquirer/prompts` lance une `ExitPromptError` quand il n'y a pas de terminal interactif (piped input, SSH, scripts CI).
+- **Correction** : Ajouter une option `--yes/-y` pour bypasser la confirmation interactive.
+
 ### SUP-02 🟠 Pas de sauvegarde avant suppression
 - **Problème** : Pas de mécanisme pour backup la DB avant un `clean --all`.
 - **Correction** : Avant suppression, copier `index.db` → `index.db.bak` avec timestamp.

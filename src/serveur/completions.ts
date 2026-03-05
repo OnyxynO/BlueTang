@@ -90,9 +90,13 @@ async function executerAvecTools(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(corpsOllama),
+        signal: AbortSignal.timeout(120_000),
       })
-    } catch {
-      return new Response(JSON.stringify({ error: 'Ollama inaccessible' }), { status: 503 })
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: `Ollama inaccessible : ${err instanceof Error ? err.message : String(err)}` }),
+        { status: 503 }
+      )
     }
 
     if (!reponse.ok) {
@@ -127,7 +131,33 @@ async function executerAvecTools(
     // Exécuter chaque tool_call
     for (const tc of toolCallsRecu) {
       const nomOutil = tc.function.name
-      const args = JSON.parse(tc.function.arguments) as Record<string, unknown>
+
+      // C6 — Validation basique des args contre inputSchema
+      let args: Record<string, unknown>
+      try {
+        args = JSON.parse(tc.function.arguments) as Record<string, unknown>
+        if (typeof args !== 'object' || args === null || Array.isArray(args)) {
+          throw new Error('Les arguments doivent être un objet JSON')
+        }
+      } catch (err) {
+        const msg = `[MCP] Args invalides pour "${nomOutil}" : ${err instanceof Error ? err.message : String(err)}`
+        if (verbose) console.warn(msg)
+        messagesActuels = [...messagesActuels, { role: 'tool', content: `[erreur args : ${msg}]` }]
+        continue
+      }
+
+      // Vérifier les propriétés requises du schéma
+      const outil = tools.find((t) => t.nom === nomOutil)
+      if (outil?.inputSchema) {
+        const schema = outil.inputSchema as { required?: string[] }
+        const manquants = (schema.required ?? []).filter((k) => !(k in args))
+        if (manquants.length > 0) {
+          const msg = `[MCP] Propriétés requises manquantes pour "${nomOutil}" : ${manquants.join(', ')}`
+          if (verbose) console.warn(msg)
+          messagesActuels = [...messagesActuels, { role: 'tool', content: `[erreur args : ${msg}]` }]
+          continue
+        }
+      }
 
       // Trouver le client qui possède cet outil
       const clientCible = gestionnaire.obtenirClients().find((c) =>
@@ -160,9 +190,13 @@ async function executerAvecTools(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(corpsFinale),
+      signal: AbortSignal.timeout(120_000),
     })
-  } catch {
-    return new Response(JSON.stringify({ error: 'Ollama inaccessible' }), { status: 503 })
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: `Ollama inaccessible : ${err instanceof Error ? err.message : String(err)}` }),
+      { status: 503 }
+    )
   }
 }
 
@@ -236,27 +270,27 @@ export function ajouterRoutesCompletions(
           gestionnaireMcp,
           config.verbose
         )
-      } else if (corps.stream === true) {
-        reponseOllama = await fetch(`${config.ollamaUrl}/v1/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(corps),
-        })
       } else {
         reponseOllama = await fetch(`${config.ollamaUrl}/v1/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(corps),
+          signal: AbortSignal.timeout(120_000),
         })
       }
-    } catch {
-      return c.json({ error: 'Ollama inaccessible' }, 503)
+    } catch (err) {
+      return c.json(
+        { error: `Ollama inaccessible : ${err instanceof Error ? err.message : String(err)}` },
+        503
+      )
     }
 
     if (!reponseOllama.ok) {
       const texte = await reponseOllama.text()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return c.json({ error: texte }, reponseOllama.status as any)
+      return new Response(JSON.stringify({ error: texte }), {
+        status: reponseOllama.status,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // Streaming : tee du flux → client reçoit immédiatement, capture en arrière-plan

@@ -35,11 +35,25 @@ export async function demarrerServeur(config: Config, db: Db | null = null): Pro
 
   const app = creerApp(config, db, gestionnaireMcp)
 
-  honoServe({ fetch: app.fetch, port: config.port }, () => {
+  honoServe({ fetch: app.fetch, port: config.port }, async () => {
     console.log(`BlueTang démarré → http://localhost:${config.port}`)
     console.log(`Ollama      : ${config.ollamaUrl}`)
     console.log(`Modèle      : ${config.modele}`)
     console.log(`Contexte    : ${config.numCtx} tokens`)
+
+    // C3 — Vérifier que le modèle est disponible dans Ollama
+    try {
+      const r = await fetch(`${config.ollamaUrl}/v1/models`, {
+        signal: AbortSignal.timeout(5000),
+      })
+      if (r.ok) {
+        const data = (await r.json()) as { data?: { id: string }[] }
+        const modeles = data.data?.map((m) => m.id) ?? []
+        if (!modeles.includes(config.modele)) {
+          console.warn(`⚠ Modèle "${config.modele}" introuvable dans Ollama. Modèles disponibles : ${modeles.join(', ') || '(aucun)'}`)
+        }
+      }
+    } catch { /* Ollama inaccessible — déjà signalé au premier appel */ }
 
     if (db) {
       const total = compterChunks(db)

@@ -3,7 +3,7 @@ import path from 'path'
 import type { Db } from '../bdd/connexion.js'
 import { chunkerFichier } from './chunker.js'
 import { scannerDossier, hasherFichier } from './scanner.js'
-import { obtenirEmbedding, vecToJson } from '../rag/embedder.js'
+import { obtenirEmbeddingsBatch, vecToJson } from '../rag/embedder.js'
 
 export interface StatsPipeline {
   fichiersScannes: number
@@ -96,16 +96,21 @@ export async function indexerDossier(
 
     indexer()
 
-    // Phase asynchrone : embedding via Ollama (si activé)
+    // Phase asynchrone : embedding via Ollama en batch (si activé)
     if (ollamaUrl) {
-      for (let i = 0; i < chunks.length; i++) {
+      const TAILLE_BATCH = 20
+      for (let debut = 0; debut < chunks.length; debut += TAILLE_BATCH) {
+        const batch = chunks.slice(debut, debut + TAILLE_BATCH)
+        const batchIds = chunkIds.slice(debut, debut + TAILLE_BATCH)
         try {
-          const vecteur = await obtenirEmbedding(chunks[i].contenu, ollamaUrl)
-          const vecRes = stmtInsertVec.run(vecToJson(vecteur))
-          stmtInsertVecMap.run(Number(vecRes.lastInsertRowid), chunkIds[i])
+          const vecteurs = await obtenirEmbeddingsBatch(batch.map((c) => c.contenu), ollamaUrl)
+          for (let i = 0; i < vecteurs.length; i++) {
+            const vecRes = stmtInsertVec.run(vecToJson(vecteurs[i]))
+            stmtInsertVecMap.run(Number(vecRes.lastInsertRowid), batchIds[i])
+          }
         } catch (err) {
           if (verbose) {
-            console.warn(`  ⚠ embed échoué pour chunk ${chunkIds[i]}: ${err}`)
+            console.warn(`  ⚠ embed batch échoué (chunks ${debut}–${debut + batch.length - 1}): ${err}`)
           }
         }
       }

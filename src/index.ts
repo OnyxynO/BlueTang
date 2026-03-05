@@ -127,6 +127,7 @@ programme
   .option('--index', "Supprimer l'index (fichiers, chunks, vecteurs)")
   .option('--sessions', 'Supprimer les sessions de mémoire')
   .option('--all', 'Supprimer tout (index + sessions)')
+  .option('-y, --yes', 'Bypass la confirmation interactive (utile en scripts/SSH)', false)
   .option('--db-path <chemin>', 'Chemin de la base de données', cfg.cheminBdd)
   .action(async (options) => {
     const db = ouvrirBdd(options.dbPath)
@@ -134,6 +135,7 @@ programme
       index: options.index,
       sessions: options.sessions,
       all: options.all,
+      oui: options.yes,
     })
   })
 
