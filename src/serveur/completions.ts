@@ -90,7 +90,7 @@ async function executerAvecTools(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(corpsOllama),
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(300_000),
       })
     } catch (err) {
       return new Response(
@@ -190,7 +190,7 @@ async function executerAvecTools(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(corpsFinale),
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(300_000),
     })
   } catch (err) {
     return new Response(
@@ -275,7 +275,7 @@ export function ajouterRoutesCompletions(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(corps),
-          signal: AbortSignal.timeout(120_000),
+          signal: AbortSignal.timeout(300_000),
         })
       }
     } catch (err) {
