@@ -208,6 +208,35 @@ bluetang clean --all        # supprime tout
 bluetang clean --all -y     # sans confirmation (scripts, SSH)
 ```
 
+### `bluetang languages`
+
+Gère les langages de programmation supportés pour l'indexation.
+
+```bash
+bluetang languages          # liste les langages intégrés et optionnels
+bluetang languages add      # menu interactif pour installer des grammaires
+bluetang languages remove   # menu pour désinstaller des langages optionnels
+```
+
+**Langages intégrés** (toujours disponibles) : TypeScript, JavaScript, Python, PHP, Markdown.
+
+**Langages optionnels** (installables à la demande) :
+
+| Langage | Extensions |
+|---------|-----------|
+| Ruby | `.rb` |
+| Go | `.go` |
+| Rust | `.rs` |
+| Java | `.java` |
+| C | `.c`, `.h` |
+| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp` |
+| C# | `.cs` |
+| Bash / Shell | `.sh`, `.bash` |
+| Lua | `.lua` |
+| Kotlin | `.kt`, `.kts` |
+
+L'installation prend **< 1 seconde** (cache npm). Les nouveaux langages sont actifs immédiatement à la prochaine indexation.
+
 ---
 
 ## Endpoints API
@@ -238,15 +267,18 @@ bluetang clean --all -y     # sans confirmation (scripts, SSH)
 
 ```
 src/
-├── index.ts              # CLI (Commander) : serve, index, watch, status, clean, init
+├── index.ts              # CLI (Commander) : toutes les commandes
 ├── config.ts             # Config + validation Zod + chargement .bluetang.json
 ├── version.ts            # VERSION lue dynamiquement depuis package.json
+├── langages/
+│   └── catalogue.ts      # Langages intégrés + optionnels, détection dynamique
 ├── bdd/
 │   ├── connexion.ts      # ouvrirBdd() + sqlite-vec
 │   └── schema.ts         # Tables : fichiers, chunks, chunks_fts, chunks_vec, sessions…
 ├── cli/
 │   ├── init.ts           # Assistant interactif (@inquirer/prompts)
-│   └── clean.ts          # Suppression index/sessions avec sauvegarde
+│   ├── clean.ts          # Suppression index/sessions avec sauvegarde
+│   └── languages.ts      # Gestion des langages (list/add/remove)
 ├── indexation/
 │   ├── chunker.ts        # Découpage AST tree-sitter (TS/JS/Python/PHP) + fallback regex
 │   ├── scanner.ts        # Scan dossiers, filtre .gitignore
@@ -383,6 +415,7 @@ La session est identifiée par un hash des 3 premiers messages. Si le client LLM
 - **sqlite-vec** v0.1.7-alpha : pas de rowid explicite en INSERT → table de liaison `chunks_vec_map`
 - **Grammaires tree-sitter** : modules CJS → utiliser `createRequire(import.meta.url)` en ESM
 - **Modèle minimum** : `qwen3:1.7b` recommandé — les modèles 0.6b exploitent mal le contexte RAG injecté
+- **Compatibilité grammaires tree-sitter** : le moteur `0.21.x` est utilisé. Certaines grammaires récentes peuvent être incompatibles. `tree-sitter-ruby@0.23.1` est validé. En cas d'erreur au chargement, BlueTang bascule automatiquement sur le chunking heuristique.
 
 ---
 
