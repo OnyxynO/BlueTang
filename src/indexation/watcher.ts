@@ -4,7 +4,8 @@ import path from 'path'
 import type { Statement } from 'better-sqlite3'
 import type { Db } from '../bdd/connexion.js'
 import { chunkerFichier } from './chunker.js'
-import { hasherFichier, EXTENSIONS_INDEXEES, DOSSIERS_EXCLUS } from './scanner.js'
+import { hasherFichier, DOSSIERS_EXCLUS } from './scanner.js'
+import { mapExtensions } from '../langages/catalogue.js'
 import { obtenirEmbedding, vecToJson } from '../rag/embedder.js'
 
 interface Stmts {
@@ -54,7 +55,7 @@ async function traiterFichierModifie(
   options: { ollamaUrl?: string; verbose?: boolean }
 ): Promise<void> {
   const ext = path.extname(cheminFichier)
-  if (!EXTENSIONS_INDEXEES.has(ext)) return
+  if (!mapExtensions().has(ext)) return
 
   try {
     const hash = await hasherFichier(cheminFichier)

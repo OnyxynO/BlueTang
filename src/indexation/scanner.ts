@@ -2,8 +2,12 @@ import { readdir, readFile } from 'fs/promises'
 import { createHash } from 'crypto'
 import path from 'path'
 import ignore from 'ignore'
+import { mapExtensions } from '../langages/catalogue.js'
 
-export const EXTENSIONS_INDEXEES = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.php', '.md'])
+// Extensions dynamiques : intégrées + heuristiques + optionnels installés
+function getExtensionsIndexees(): Set<string> {
+  return new Set(mapExtensions().keys())
+}
 
 export const DOSSIERS_EXCLUS = new Set([
   'node_modules', '.git', 'dist', 'build', '.bluetang',
@@ -43,7 +47,7 @@ export async function scannerDossier(racine: string): Promise<string[]> {
 
       if (entree.isDirectory()) {
         await parcourir(cheminComplet)
-      } else if (entree.isFile() && EXTENSIONS_INDEXEES.has(path.extname(entree.name))) {
+      } else if (entree.isFile() && getExtensionsIndexees().has(path.extname(entree.name))) {
         fichiers.push(cheminComplet)
       }
     }

@@ -8,6 +8,7 @@ import { indexerDossier } from './indexation/pipeline.js'
 import { surveillerDossier } from './indexation/watcher.js'
 import { lancerInit } from './cli/init.js'
 import { lancerClean } from './cli/clean.js'
+import { listerLanguages, ajouterLanguages, supprimerLanguages } from './cli/languages.js'
 import { VERSION } from './version.js'
 
 // Les options du fichier .bluetang.json servent de valeurs par défaut
@@ -137,6 +138,27 @@ programme
       all: options.all,
       oui: options.yes,
     })
+  })
+
+const cmdLanguages = programme
+  .command('languages')
+  .description('Gérer les langages de programmation supportés')
+  .action(async () => {
+    await listerLanguages()
+  })
+
+cmdLanguages
+  .command('add')
+  .description('Ajouter des langages via un menu interactif')
+  .action(async () => {
+    await ajouterLanguages()
+  })
+
+cmdLanguages
+  .command('remove')
+  .description('Désinstaller des langages optionnels')
+  .action(async () => {
+    await supprimerLanguages()
   })
 
 programme.parse()
