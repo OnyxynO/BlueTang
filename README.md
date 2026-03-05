@@ -173,7 +173,7 @@ bluetang index ./src --ollama-url http://localhost:11434   # + embeddings séman
 bluetang index ./src -v                                    # afficher les fichiers traités
 ```
 
-Langages supportés : TypeScript, JavaScript, Python, PHP, Markdown.
+Langages supportés : TypeScript, JavaScript, Python, PHP, Markdown — et tous les langages optionnels installés via `bluetang languages add`.
 
 ### `bluetang watch [chemin]`
 
@@ -210,12 +210,28 @@ bluetang clean --all -y     # sans confirmation (scripts, SSH)
 
 ### `bluetang languages`
 
-Gère les langages de programmation supportés pour l'indexation.
+Gère les langages de programmation supportés pour l'indexation (grammaires tree-sitter).
 
 ```bash
 bluetang languages          # liste les langages intégrés et optionnels
 bluetang languages add      # menu interactif pour installer des grammaires
 bluetang languages remove   # menu pour désinstaller des langages optionnels
+```
+
+Exemple de sortie :
+
+```
+Languages intégrés (toujours disponibles) :
+  ✓ TypeScript / TSX         .ts, .tsx
+  ✓ JavaScript / JSX         .js, .jsx
+  ✓ Python                   .py
+  ✓ PHP                      .php
+
+Languages optionnels :
+  ✓ installé    Ruby                     .rb
+  ○ disponible  Go                       .go
+  ○ disponible  Rust                     .rs
+  ...
 ```
 
 **Langages intégrés** (toujours disponibles) : TypeScript, JavaScript, Python, PHP, Markdown.
@@ -235,7 +251,14 @@ bluetang languages remove   # menu pour désinstaller des langages optionnels
 | Lua | `.lua` |
 | Kotlin | `.kt`, `.kts` |
 
-L'installation prend **< 1 seconde** (cache npm). Les nouveaux langages sont actifs immédiatement à la prochaine indexation.
+Les grammaires sont installées dans le répertoire de BlueTang lui-même — le `package.json` de ton projet n'est pas modifié. L'installation prend **~5s pour les 10 langages** (ou < 1s avec le cache npm). Les nouveaux langages sont actifs immédiatement à la prochaine indexation.
+
+**Workflow typique :**
+
+```bash
+bluetang languages add      # sélectionner Ruby et Go dans le menu
+bluetang index ./src        # réindexer — les fichiers .rb et .go sont maintenant inclus
+```
 
 ---
 
