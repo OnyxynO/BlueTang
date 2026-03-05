@@ -50,7 +50,7 @@ export async function ajouterLanguages(): Promise<void> {
   console.log(`\nInstallation de ${packages.join(', ')} dans ${BLUETANG_ROOT}...`)
 
   try {
-    await execFileAsync('npm', ['install', '--prefix', BLUETANG_ROOT, ...packages], {
+    await execFileAsync('npm', ['install', '--no-save', '--prefix', BLUETANG_ROOT, ...packages], {
       cwd: BLUETANG_ROOT,
     })
     console.log('\nInstallés avec succès :')
@@ -89,7 +89,7 @@ export async function supprimerLanguages(): Promise<void> {
   console.log(`\nDésinstallation de ${packages.join(', ')}...`)
 
   try {
-    await execFileAsync('npm', ['uninstall', '--prefix', BLUETANG_ROOT, ...packages], {
+    await execFileAsync('npm', ['uninstall', '--no-save', '--prefix', BLUETANG_ROOT, ...packages], {
       cwd: BLUETANG_ROOT,
     })
     console.log('\nDésinstallés :')

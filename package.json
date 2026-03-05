@@ -9,8 +9,18 @@
     "url": "https://github.com/OnyxynO/BlueTang"
   },
   "homepage": "https://github.com/OnyxynO/BlueTang#readme",
-  "keywords": ["llm", "ollama", "rag", "mcp", "proxy", "local-ai", "continue"],
-  "engines": { "node": ">=22.0.0" },
+  "keywords": [
+    "llm",
+    "ollama",
+    "rag",
+    "mcp",
+    "proxy",
+    "local-ai",
+    "continue"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
