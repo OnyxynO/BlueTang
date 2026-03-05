@@ -1,11 +1,22 @@
 import { createRequire } from 'module'
 import { fileURLToPath } from 'url'
+import { existsSync } from 'fs'
 import path from 'path'
 
 const _require = createRequire(import.meta.url)
 
-// Répertoire racine de BlueTang (dist/ en prod, src/ en dev → on remonte d'un niveau)
-export const BLUETANG_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+// Remonte les dossiers jusqu'à trouver package.json (robuste en dev et en prod)
+function trouverRacine(): string {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  while (true) {
+    if (existsSync(path.join(dir, 'package.json'))) return dir
+    const parent = path.dirname(dir)
+    if (parent === dir) throw new Error('Impossible de trouver la racine BlueTang')
+    dir = parent
+  }
+}
+
+export const BLUETANG_ROOT = trouverRacine()
 
 export interface DefinitionLangage {
   id: string
@@ -137,14 +148,13 @@ export const LANGAGES_OPTIONNELS: DefinitionLangage[] = [
   },
 ]
 
-// Vérifie si un langage optionnel est installé (package npm disponible)
+// Vérifie si un langage optionnel est installé.
+// Utilise existsSync sur le dossier node_modules plutôt que require.resolve()
+// car Node.js met en cache les résolutions : un module absent au démarrage
+// reste "introuvable" même après installation dynamique.
 export function estInstalle(lang: DefinitionLangage): boolean {
-  try {
-    _require.resolve(lang.package)
-    return true
-  } catch {
-    return false
-  }
+  if (!lang.package) return true // langages heuristiques (ex. markdown)
+  return existsSync(path.join(BLUETANG_ROOT, 'node_modules', lang.package))
 }
 
 // Charge la grammaire d'un langage (intégré ou installé)
