@@ -1,8 +1,7 @@
 import type { Hono } from 'hono'
 import type { Config } from '../config.js'
 import type { Db } from '../bdd/connexion.js'
-
-const VERSION = '0.2.0'
+import { VERSION } from '../version.js'
 
 export function ajouterRoutesModeles(app: Hono, config: Config, db: Db | null = null): void {
   app.get('/v1/models', async (c) => {

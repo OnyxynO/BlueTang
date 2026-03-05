@@ -7,6 +7,8 @@ import { ouvrirBdd } from './bdd/connexion.js'
 import { indexerDossier } from './indexation/pipeline.js'
 import { surveillerDossier } from './indexation/watcher.js'
 import { lancerInit } from './cli/init.js'
+import { lancerClean } from './cli/clean.js'
+import { VERSION } from './version.js'
 
 // Les options du fichier .bluetang.json servent de valeurs par défaut
 // que les options CLI peuvent surcharger
@@ -17,7 +19,7 @@ const programme = new Command()
 programme
   .name('bluetang')
   .description('Proxy intelligent entre client LLM et Ollama — RAG + mémoire')
-  .version('0.2.0')
+  .version(VERSION)
 
 programme
   .command('serve')
@@ -117,6 +119,22 @@ programme
   .description('Configurer BlueTang de manière interactive')
   .action(async () => {
     await lancerInit()
+  })
+
+programme
+  .command('clean')
+  .description("Supprimer l'index et/ou les sessions de mémoire")
+  .option('--index', "Supprimer l'index (fichiers, chunks, vecteurs)")
+  .option('--sessions', 'Supprimer les sessions de mémoire')
+  .option('--all', 'Supprimer tout (index + sessions)')
+  .option('--db-path <chemin>', 'Chemin de la base de données', cfg.cheminBdd)
+  .action(async (options) => {
+    const db = ouvrirBdd(options.dbPath)
+    await lancerClean(db, options.dbPath, {
+      index: options.index,
+      sessions: options.sessions,
+      all: options.all,
+    })
   })
 
 programme.parse()

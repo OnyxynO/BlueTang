@@ -2,6 +2,15 @@
   "name": "bluetang",
   "version": "0.3.0",
   "description": "Proxy intelligent entre client LLM et Ollama — RAG + mémoire + client MCP",
+  "author": "OnyxynO <etievant.sebastien@protonmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OnyxynO/BlueTang"
+  },
+  "homepage": "https://github.com/OnyxynO/BlueTang#readme",
+  "keywords": ["llm", "ollama", "rag", "mcp", "proxy", "local-ai", "continue"],
+  "engines": { "node": ">=22.0.0" },
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -14,9 +23,11 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup src/index.ts --format esm --target node22 --clean",
+    "pretest": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm test && npm run build"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
@@ -32,7 +43,8 @@
     "tree-sitter-javascript": "^0.21.4",
     "tree-sitter-php": "^0.22.8",
     "tree-sitter-python": "^0.21.0",
-    "tree-sitter-typescript": "^0.23.2"
+    "tree-sitter-typescript": "^0.23.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

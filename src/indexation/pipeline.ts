@@ -63,6 +63,11 @@ export async function indexerDossier(
     }
 
     const contenu = await readFile(cheminFichier, 'utf-8')
+    // A7 : ignorer les fichiers trop petits pour être utiles
+    if (contenu.length < 10) {
+      if (verbose) console.log(`  ↷ ${path.relative(racine, cheminFichier)} (ignoré — < 10 octets)`)
+      continue
+    }
     const chunks = chunkerFichier(contenu, cheminFichier)
 
     // Phase synchrone : toutes les opérations SQLite dans une transaction

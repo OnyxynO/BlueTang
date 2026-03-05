@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import type { McpServeurConfig } from '../config.js'
+import { VERSION } from '../version.js'
 
 export interface ToolMcp {
   nom: string
@@ -26,7 +27,7 @@ export class ClientMcp {
 
   constructor(nom: string) {
     this.nom = nom
-    this.client = new Client({ name: 'bluetang', version: '0.2.0' })
+    this.client = new Client({ name: 'bluetang', version: VERSION })
   }
 
   async connecter(config: McpServeurConfig): Promise<void> {

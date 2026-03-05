@@ -71,5 +71,8 @@ export function initSchema(db: Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_messages_session_id
       ON messages_session(session_id);
+
+    CREATE INDEX IF NOT EXISTS idx_chunks_fichier_id
+      ON chunks(fichier_id);
   `)
 }

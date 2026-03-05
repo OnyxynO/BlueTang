@@ -33,7 +33,14 @@ export async function lancerInit(): Promise<void> {
   const ollamaUrl = await input({
     message: 'URL Ollama',
     default: configDefaut.ollamaUrl,
-    validate: (v) => (v.startsWith('http') ? true : "L'URL doit commencer par http"),
+    validate: (v) => {
+      try {
+        const url = new URL(v)
+        return url.protocol === 'http:' || url.protocol === 'https:' ? true : "L'URL doit commencer par http:// ou https://"
+      } catch {
+        return 'URL invalide'
+      }
+    },
   })
 
   const modele = await input({
