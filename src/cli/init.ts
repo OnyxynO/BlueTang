@@ -4,9 +4,10 @@ import { resolve } from 'path'
 import { configDefaut } from '../config.js'
 import { ouvrirBdd } from '../bdd/connexion.js'
 import { indexerDossier } from '../indexation/pipeline.js'
+import { afficherLogo } from '../version.js'
 
 export async function lancerInit(): Promise<void> {
-  console.log('\n🐟 BlueTang — Configuration initiale\n')
+  afficherLogo('Configuration initiale')
 
   // Vérifier si une config existe déjà
   if (existsSync('.bluetang.json')) {

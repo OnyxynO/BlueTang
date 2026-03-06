@@ -1,6 +1,6 @@
 {
   "name": "bluetang",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Proxy intelligent entre client LLM et Ollama — RAG + mémoire + client MCP",
   "author": "OnyxynO <etievant.sebastien@protonmail.com>",
   "license": "MIT",

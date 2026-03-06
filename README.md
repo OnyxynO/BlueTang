@@ -1,10 +1,234 @@
 # BlueTang
 
-> Proxy intelligent entre un client LLM et Ollama — RAG codebase + mémoire + client MCP
+> Intelligent proxy between an LLM client and Ollama — RAG + memory + MCP
+
+[![English](https://img.shields.io/badge/lang-English-blue)](#english) [![Français](https://img.shields.io/badge/lang-Français-blue)](#français)
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-0.3.0-orange)
+![npm](https://img.shields.io/npm/v/bluetang)
+
+---
+
+## English
+
+BlueTang sits transparently between your LLM client (Continue.dev, Open WebUI, etc.) and Ollama. It automatically enriches every prompt with:
+
+- **Hybrid RAG** — relevant code snippets (BM25 + semantic search via `nomic-embed-text`)
+- **Conversation memory** — progressive summary + fact extraction, persisted in SQLite
+- **AST chunking** — syntactically exact code splitting via tree-sitter (TS, JS, Python, PHP)
+- **MCP client** — connects to stdio MCP servers (filesystem, databases, APIs…) with context injection and agentic tool execution
+
+The client sees nothing: point it at `:11435` instead of `:11434`, everything works as before.
+
+```
+LLM client → bluetang :11435 → [RAG + memory + MCP] → Ollama :11434
+```
+
+### Installation
+
+```bash
+npm install -g bluetang
+# or without global install:
+npx bluetang serve
+```
+
+**Prerequisites**
+- Node.js ≥ 22
+- [Ollama](https://ollama.ai) running
+- `ollama pull nomic-embed-text` for semantic RAG (optional)
+
+### Quick start
+
+```bash
+# 1. Interactive setup (generates .bluetang.json)
+bluetang init
+
+# 2. Index your codebase
+bluetang index ./src --ollama-url http://localhost:11434
+
+# 3. Start the proxy
+bluetang serve
+
+# 4. Point your LLM client at http://localhost:11435/v1
+```
+
+### Performance
+
+BlueTang adds **50–200ms** overhead per request (RAG enrichment + session). On generations that take 10–300s with a local LLM, this overhead is imperceptible.
+
+Benchmark on Mac mini M4 with `qwen3:8b`:
+
+| Question | Ollama direct | Via BlueTang | Overhead |
+|----------|--------------|-------------|---------|
+| Simple (Python loop) | 29.5s | 28.2s | < 1s (noise) |
+| Complex (FastAPI webhook) | 339.9s | 204.3s | < 1s (model variability) |
+
+### Configuration
+
+#### `.bluetang.json`
+
+Generated automatically by `bluetang init`. Full format:
+
+```json
+{
+  "port": 11435,
+  "ollamaUrl": "http://localhost:11434",
+  "modele": "qwen3:1.7b",
+  "numCtx": 16384,
+  "cheminBdd": ".bluetang/index.db",
+  "mcp": [
+    {
+      "nom": "filesystem",
+      "commande": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/folder"]
+    }
+  ]
+}
+```
+
+CLI options take priority over this file.
+
+#### MCP servers
+
+BlueTang connects to any stdio MCP server:
+
+| Server | Command | Capabilities |
+|--------|---------|-------------|
+| `@modelcontextprotocol/server-filesystem` | `npx -y @modelcontextprotocol/server-filesystem /folder` | read_file, list_directory, write_file… |
+| `@modelcontextprotocol/server-sqlite` | `npx -y @modelcontextprotocol/server-sqlite path.db` | query, list_tables… |
+| `@modelcontextprotocol/server-github` | `npx -y @modelcontextprotocol/server-github` | issues, pull_requests, code search… |
+
+BlueTang automatically determines if a MCP server is relevant for each request (keyword matching on tool names and descriptions). If relevant:
+1. Available **resources** are read and injected as system context
+2. **Tools** are exposed to the model — if Ollama returns a `tool_call`, BlueTang executes it and resubmits (up to 3 agentic rounds)
+
+#### Continue.dev example
+
+```json
+{
+  "models": [{
+    "title": "Qwen3 (BlueTang)",
+    "provider": "openai",
+    "model": "qwen3:1.7b",
+    "apiBase": "http://localhost:11435/v1",
+    "apiKey": "not-needed"
+  }]
+}
+```
+
+#### LAN usage
+
+BlueTang listens on `0.0.0.0` by default — accessible from other machines without extra configuration.
+
+```json
+{
+  "models": [{
+    "title": "BlueTang (Mac mini)",
+    "provider": "openai",
+    "model": "qwen3:8b",
+    "apiBase": "http://192.168.1.X:11435/v1",
+    "apiKey": "not-needed"
+  }]
+}
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `bluetang init` | Interactive setup wizard |
+| `bluetang serve` | Start the proxy |
+| `bluetang index [path]` | Index a folder for RAG |
+| `bluetang watch [path]` | Watch for file changes and update index |
+| `bluetang status` | Show index statistics |
+| `bluetang clean` | Delete index and/or sessions |
+| `bluetang languages` | Manage supported languages |
+
+```bash
+bluetang serve --port 11435 --ollama-url http://localhost:11434 -m qwen3:1.7b
+bluetang index ./src --ollama-url http://localhost:11434
+bluetang clean --all -y
+bluetang languages add     # interactive menu to install grammars
+bluetang languages remove  # uninstall optional languages
+```
+
+**Built-in languages** (always available): TypeScript, JavaScript, Python, PHP, Markdown.
+
+**Optional languages** (installable on demand via `bluetang languages add`): Ruby, Go, Rust, Java, C, C++, C#, Bash, Lua, Kotlin.
+
+### API Endpoints
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/v1/chat/completions` | Enriched proxy (RAG + memory) |
+| GET | `/v1/models` | List Ollama models |
+| POST | `/v1/embeddings` | Passthrough to Ollama |
+| GET | `/health` | Proxy and Ollama status |
+| GET | `/stats` | Real-time metrics (index + memory) |
+
+### Architecture
+
+```
+LLM client sends POST /v1/chat/completions
+→ BlueTang identifies session (SHA-256 of first 3 messages)
+→ Injects memory (summary + facts) as first system message
+→ Hybrid BM25 + cosine search → injects relevant code snippets
+→ If MCP servers configured → relevance score → inject resources + expose tools
+→ Forward to Ollama (with tools if relevant)
+→ If Ollama returns tool_calls → execute via MCP, resubmit (max 3 rounds)
+→ Capture response (stream or JSON)
+→ Save exchange + update summary if needed
+```
+
+### Development
+
+```bash
+git clone https://github.com/OnyxynO/BlueTang
+cd BlueTang
+npm install
+
+npm run dev -- serve -v     # dev mode
+npm test                     # tests (118 tests)
+npm run typecheck            # TypeScript check
+npm run build                # production build
+```
+
+### Troubleshooting
+
+**Port already in use**
+```bash
+bluetang serve --port 11436
+```
+
+**Model not found at startup**
+```bash
+ollama pull qwen3:1.7b
+```
+
+**Ollama unreachable (503)**
+```bash
+curl http://localhost:11434/api/version
+brew services start ollama
+```
+
+**No RAG context injected**
+```bash
+bluetang status
+bluetang index ./src --ollama-url http://localhost:11434
+```
+
+### Known caveats
+
+- **FTS5 tokenizer**: does not split camelCase — `sendEmail` is one token
+- **sqlite-vec** v0.1.7-alpha: no explicit rowid in INSERT
+- **tree-sitter grammars**: CJS modules → use `createRequire(import.meta.url)` in ESM
+- **Minimum model**: `qwen3:1.7b` recommended — 0.6b models poorly exploit injected RAG context
+- **tree-sitter compatibility**: engine `0.21.x` — newer grammars may be incompatible; BlueTang falls back to heuristic chunking automatically
+
+---
+
+## Français
 
 BlueTang s'intercale de manière transparente entre ton client LLM (Continue.dev, Open WebUI, etc.) et Ollama. Il enrichit automatiquement chaque prompt avec :
 
@@ -19,9 +243,7 @@ Le client ne voit rien : il pointe sur `:11435` au lieu de `:11434`, tout le res
 Client LLM → bluetang :11435 → [RAG + mémoire + MCP] → Ollama :11434
 ```
 
----
-
-## Installation
+### Installation
 
 ```bash
 npm install -g bluetang
@@ -34,9 +256,7 @@ npx bluetang serve
 - [Ollama](https://ollama.ai) en cours d'exécution
 - `ollama pull nomic-embed-text` pour le RAG sémantique (optionnel)
 
----
-
-## Démarrage rapide
+### Démarrage rapide
 
 ```bash
 # 1. Configuration interactive (génère .bluetang.json)
@@ -51,9 +271,7 @@ bluetang serve
 # 4. Pointer ton client LLM sur http://localhost:11435/v1
 ```
 
----
-
-## Performance
+### Performance
 
 BlueTang ajoute un surcoût de **50–200ms** par requête (enrichissement RAG + session). Sur des générations qui durent 10–300s avec un LLM local, ce surcoût est imperceptible.
 
@@ -64,13 +282,11 @@ Benchmark sur Mac mini M4 avec `qwen3:8b` :
 | Simple (boucle Python) | 29.5s | 28.2s | < 1s (bruit) |
 | Complexe (webhook FastAPI) | 339.9s | 204.3s | < 1s (variabilité modèle) |
 
----
+### Configuration
 
-## Configuration
+#### `.bluetang.json`
 
-### Fichier `.bluetang.json`
-
-Ce fichier est généré automatiquement par `bluetang init`. Il permet de ne pas répéter les options CLI à chaque commande. Format complet :
+Généré automatiquement par `bluetang init`. Format complet :
 
 ```json
 {
@@ -91,9 +307,9 @@ Ce fichier est généré automatiquement par `bluetang init`. Il permet de ne pa
 
 Les options CLI ont priorité sur ce fichier.
 
-### Serveurs MCP supportés
+#### Serveurs MCP supportés
 
-BlueTang se connecte à n'importe quel serveur MCP stdio. Exemples :
+BlueTang se connecte à n'importe quel serveur MCP stdio :
 
 | Serveur | Commande | Capabilities |
 |---------|----------|-------------|
@@ -101,11 +317,11 @@ BlueTang se connecte à n'importe quel serveur MCP stdio. Exemples :
 | `@modelcontextprotocol/server-sqlite` | `npx -y @modelcontextprotocol/server-sqlite chemin.db` | query, list_tables… |
 | `@modelcontextprotocol/server-github` | `npx -y @modelcontextprotocol/server-github` | issues, pull_requests, code search… |
 
-BlueTang détermine automatiquement si un serveur MCP est pertinent pour chaque requête (keyword matching sur les noms et descriptions des tools). Si pertinent :
+BlueTang détermine automatiquement si un serveur MCP est pertinent pour chaque requête. Si pertinent :
 1. Les **resources** disponibles sont lues et injectées comme contexte système
 2. Les **tools** sont exposés au modèle — si Ollama retourne un `tool_call`, BlueTang l'exécute et re-soumet (jusqu'à 3 tours agentiques)
 
-### Exemple Continue.dev
+#### Exemple Continue.dev
 
 ```json
 {
@@ -119,329 +335,50 @@ BlueTang détermine automatiquement si un serveur MCP est pertinent pour chaque 
 }
 ```
 
-### Utilisation sur le réseau local (LAN)
+#### Utilisation sur le réseau local (LAN)
 
-BlueTang écoute sur `0.0.0.0` par défaut — il est accessible depuis d'autres machines du réseau sans configuration supplémentaire.
+BlueTang écoute sur `0.0.0.0` par défaut — accessible depuis d'autres machines sans configuration supplémentaire.
 
-```json
-{
-  "models": [{
-    "title": "BlueTang (Mac mini)",
-    "provider": "openai",
-    "model": "qwen3:8b",
-    "apiBase": "http://192.168.1.X:11435/v1",
-    "apiKey": "not-needed"
-  }]
-}
-```
+### Commandes
 
----
+| Commande | Description |
+|----------|-------------|
+| `bluetang init` | Assistant de configuration interactif |
+| `bluetang serve` | Lancer le proxy |
+| `bluetang index [chemin]` | Indexer un dossier pour le RAG |
+| `bluetang watch [chemin]` | Surveiller les modifications en temps réel |
+| `bluetang status` | Statistiques de l'index |
+| `bluetang clean` | Supprimer l'index et/ou les sessions |
+| `bluetang languages` | Gérer les langages supportés |
 
-## Commandes
+**Langages intégrés** : TypeScript, JavaScript, Python, PHP, Markdown.
 
-### `bluetang init`
+**Langages optionnels** (via `bluetang languages add`) : Ruby, Go, Rust, Java, C, C++, C#, Bash, Lua, Kotlin.
 
-Assistant de configuration interactif. Génère `.bluetang.json` et indexe la codebase si souhaité.
+### Endpoints API
 
-```bash
-bluetang init
-```
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| POST | `/v1/chat/completions` | Proxy enrichi (RAG + mémoire) |
+| GET | `/v1/models` | Liste les modèles Ollama |
+| POST | `/v1/embeddings` | Passthrough vers Ollama |
+| GET | `/health` | État du proxy et d'Ollama |
+| GET | `/stats` | Métriques temps réel |
 
-### `bluetang serve`
-
-Lance le proxy avec RAG et mémoire actifs.
-
-```bash
-bluetang serve [options]
-
-Options :
-  -p, --port <port>        Port du proxy (défaut : 11435)
-  --ollama-url <url>       URL Ollama (défaut : http://localhost:11434)
-  -m, --model <nom>        Modèle par défaut (défaut : qwen3:1.7b)
-  --num-ctx <n>            Taille du contexte en tokens (défaut : 16384)
-  --db-path <chemin>       Base de données (défaut : .bluetang/index.db)
-  -v, --verbose            Logs détaillés
-```
-
-### `bluetang index [chemin]`
-
-Indexe un dossier pour le RAG. Sans `--ollama-url`, seul le BM25 est activé.
-
-```bash
-bluetang index ./src
-bluetang index ./src --ollama-url http://localhost:11434   # + embeddings sémantiques
-bluetang index ./src -v                                    # afficher les fichiers traités
-```
-
-Langages supportés : TypeScript, JavaScript, Python, PHP, Markdown — et tous les langages optionnels installés via `bluetang languages add`.
-
-### `bluetang watch [chemin]`
-
-Surveille les modifications en temps réel et met à jour l'index automatiquement.
-
-```bash
-bluetang watch ./src
-bluetang watch ./src --ollama-url http://localhost:11434
-```
-
-### `bluetang status`
-
-Affiche les statistiques de l'index courant.
-
-```bash
-bluetang status
-# Fichiers indexés : 14
-# Chunks total     : 87
-# Vecteurs         : 87
-# Sessions mémoire : 3 (42 messages)
-# Dernière MAJ     : 2026-03-04 09:30:00
-```
-
-### `bluetang clean`
-
-Supprime l'index et/ou les sessions. Crée une sauvegarde `.db.bak` avant suppression.
-
-```bash
-bluetang clean --index      # supprime l'index (fichiers, chunks, vecteurs)
-bluetang clean --sessions   # supprime les sessions de mémoire
-bluetang clean --all        # supprime tout
-bluetang clean --all -y     # sans confirmation (scripts, SSH)
-```
-
-### `bluetang languages`
-
-Gère les langages de programmation supportés pour l'indexation (grammaires tree-sitter).
-
-```bash
-bluetang languages          # liste les langages intégrés et optionnels
-bluetang languages add      # menu interactif pour installer des grammaires
-bluetang languages remove   # menu pour désinstaller des langages optionnels
-```
-
-Exemple de sortie :
-
-```
-Languages intégrés (toujours disponibles) :
-  ✓ TypeScript / TSX         .ts, .tsx
-  ✓ JavaScript / JSX         .js, .jsx
-  ✓ Python                   .py
-  ✓ PHP                      .php
-
-Languages optionnels :
-  ✓ installé    Ruby                     .rb
-  ○ disponible  Go                       .go
-  ○ disponible  Rust                     .rs
-  ...
-```
-
-**Langages intégrés** (toujours disponibles) : TypeScript, JavaScript, Python, PHP, Markdown.
-
-**Langages optionnels** (installables à la demande) :
-
-| Langage | Extensions |
-|---------|-----------|
-| Ruby | `.rb` |
-| Go | `.go` |
-| Rust | `.rs` |
-| Java | `.java` |
-| C | `.c`, `.h` |
-| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp` |
-| C# | `.cs` |
-| Bash / Shell | `.sh`, `.bash` |
-| Lua | `.lua` |
-| Kotlin | `.kt`, `.kts` |
-
-Les grammaires sont installées dans le répertoire de BlueTang lui-même — le `package.json` de ton projet n'est pas modifié. L'installation prend **~5s pour les 10 langages** (ou < 1s avec le cache npm). Les nouveaux langages sont actifs immédiatement à la prochaine indexation.
-
-**Workflow typique :**
-
-```bash
-bluetang languages add      # sélectionner Ruby et Go dans le menu
-bluetang index ./src        # réindexer — les fichiers .rb et .go sont maintenant inclus
-```
-
----
-
-## Endpoints API
-
-| Méthode | Route               | Description                              |
-|---------|---------------------|------------------------------------------|
-| POST    | `/v1/chat/completions` | Proxy enrichi (RAG + mémoire)         |
-| GET     | `/v1/models`        | Liste les modèles Ollama                 |
-| POST    | `/v1/embeddings`    | Passthrough vers Ollama                  |
-| GET     | `/health`           | État du proxy et d'Ollama               |
-| GET     | `/stats`            | Métriques temps réel (index + mémoire)  |
-
-### Exemple `/stats`
-
-```json
-{
-  "version": "0.3.0",
-  "index": { "fichiers": 14, "chunks": 87, "vecteurs": 87, "derniere_indexation": "2026-03-04T09:30:00" },
-  "memoire": { "sessions": 3, "messages": 42 },
-  "ollama": { "url": "http://localhost:11434", "accessible": true, "version": "0.6.0" },
-  "config": { "port": 11435, "modele": "qwen3:1.7b", "numCtx": 16384 }
-}
-```
-
----
-
-## Architecture
-
-```
-src/
-├── index.ts              # CLI (Commander) : toutes les commandes
-├── config.ts             # Config + validation Zod + chargement .bluetang.json
-├── version.ts            # VERSION lue dynamiquement depuis package.json
-├── langages/
-│   └── catalogue.ts      # Langages intégrés + optionnels, détection dynamique
-├── bdd/
-│   ├── connexion.ts      # ouvrirBdd() + sqlite-vec
-│   └── schema.ts         # Tables : fichiers, chunks, chunks_fts, chunks_vec, sessions…
-├── cli/
-│   ├── init.ts           # Assistant interactif (@inquirer/prompts)
-│   ├── clean.ts          # Suppression index/sessions avec sauvegarde
-│   └── languages.ts      # Gestion des langages (list/add/remove)
-├── indexation/
-│   ├── chunker.ts        # Découpage AST tree-sitter (TS/JS/Python/PHP) + fallback regex
-│   ├── scanner.ts        # Scan dossiers, filtre .gitignore
-│   ├── pipeline.ts       # Indexation batch : chunks + embeddings (batching par 20)
-│   └── watcher.ts        # Surveillance temps réel (chokidar)
-├── rag/
-│   ├── embedder.ts       # Embeddings via Ollama nomic-embed-text (batch + single)
-│   ├── recherche.ts      # BM25 (FTS5) + sémantique (sqlite-vec) + hybride
-│   └── assembleur.ts     # Injection contexte dans le prompt
-├── memoire/
-│   ├── session.ts        # Identification session, persistance, injection mémoire
-│   └── resume.ts         # Résumé progressif + extraction de faits
-├── mcp/
-│   ├── client.ts         # ClientMcp — connexion stdio, listTools, callTool, readResource
-│   ├── gestionnaire.ts   # GestionnaireMcp — pool de clients (un par serveur)
-│   ├── pertinence.ts     # Keyword matching requête vs tools/resources (seuil 0.3)
-│   └── injecteur.ts      # Injection resources + retour des tools disponibles
-├── serveur/
-│   ├── app.ts            # Hono app + init MCP + démarrage + vérif modèle
-│   ├── completions.ts    # POST /v1/chat/completions : mémoire → RAG → MCP → Ollama
-│   └── modeles.ts        # GET /v1/models, /health, /stats, POST /v1/embeddings
-└── utils/
-    └── stopwords.ts      # Stopwords partagés (RAG + MCP)
-```
-
-### Flux d'une requête
-
-```
-1. Client envoie POST /v1/chat/completions
-2. BlueTang identifie la session (SHA-256 des 3 premiers messages)
-3. Injecte la mémoire (résumé + faits) en premier message système
-4. Recherche hybride BM25 + cosinus → injecte les extraits de code pertinents
-5. Si serveurs MCP configurés → score pertinence → injecte resources + expose tools
-6. Forward vers Ollama (avec tools si pertinents)
-7. Si Ollama retourne tool_calls → exécute via MCP, re-soumet (max 3 tours)
-8. Capture la réponse (stream ou JSON)
-9. Sauvegarde l'échange + mise à jour du résumé si nécessaire
-```
-
----
-
-## Développement
+### Développement
 
 ```bash
 git clone https://github.com/OnyxynO/BlueTang
 cd BlueTang
 npm install
 
-npm run dev -- serve -v          # lancer en mode dev
-npm test                          # tests (64 tests)
-npm run typecheck                 # vérification TypeScript
-npm run build                     # build pour production
-
-npx tsx scripts/benchmark.ts     # benchmark BM25 recall sur la codebase
+npm run dev -- serve -v     # mode dev
+npm test                     # tests (118 tests)
+npm run build                # build production
 ```
 
 ---
 
-## Troubleshooting
-
-### Port déjà utilisé
-
-```
-Error: listen EADDRINUSE :::11435
-```
-
-Un autre processus occupe le port. Changer le port dans `.bluetang.json` ou via `--port` :
-
-```bash
-bluetang serve --port 11436
-```
-
-### Modèle introuvable au démarrage
-
-```
-⚠ Modèle "qwen3:1.7b" introuvable dans Ollama. Modèles disponibles : ...
-```
-
-Installer le modèle manquant :
-
-```bash
-ollama pull qwen3:1.7b
-```
-
-### Ollama inaccessible (503)
-
-```json
-{ "error": "Ollama inaccessible : fetch failed" }
-```
-
-Vérifier qu'Ollama tourne et que l'URL est correcte :
-
-```bash
-curl http://localhost:11434/api/version   # doit retourner {"version":"..."}
-brew services start ollama                # si installé via Homebrew
-```
-
-### Pas de contexte RAG injecté
-
-Vérifier que l'index n'est pas vide :
-
-```bash
-bluetang status
-```
-
-Si `Chunks total : 0`, réindexer :
-
-```bash
-bluetang index ./src --ollama-url http://localhost:11434
-```
-
-### Base de données corrompue
-
-```
-SqliteError: database disk image is malformed
-```
-
-Supprimer la base et réindexer :
-
-```bash
-bluetang clean --all -y
-bluetang index ./src --ollama-url http://localhost:11434
-```
-
-### Sessions non retrouvées (mémoire perdue)
-
-La session est identifiée par un hash des 3 premiers messages. Si le client LLM ne renvoie pas l'historique complet à chaque requête, la session peut ne pas être retrouvée. C'est un comportement normal (best-effort).
-
----
-
-## Pièges connus
-
-- **FTS5 tokenizer** : ne découpe pas le camelCase — `envoyerEmail` est un token unique
-- **sqlite-vec** v0.1.7-alpha : pas de rowid explicite en INSERT → table de liaison `chunks_vec_map`
-- **Grammaires tree-sitter** : modules CJS → utiliser `createRequire(import.meta.url)` en ESM
-- **Modèle minimum** : `qwen3:1.7b` recommandé — les modèles 0.6b exploitent mal le contexte RAG injecté
-- **Compatibilité grammaires tree-sitter** : le moteur `0.21.x` est utilisé. Certaines grammaires récentes peuvent être incompatibles. `tree-sitter-ruby@0.23.1` est validé. En cas d'erreur au chargement, BlueTang bascule automatiquement sur le chunking heuristique.
-
----
-
-## Licence
+## License / Licence
 
 MIT

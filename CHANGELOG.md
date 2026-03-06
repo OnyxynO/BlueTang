@@ -5,6 +5,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [0.4.0] — 2026-03-06
+
+### Ajouté
+- Logo ASCII `><{{{°>` affiché au démarrage (`bluetang serve`) et à l'initialisation (`bluetang init`)
+- README bilingue (anglais + français)
+- `afficherLogo()` dans `src/version.ts` — sous-titre paramétrable, couleurs ANSI
+
+---
+
 ## [0.3.0] — 2026-03-04
 
 ### Ajouté

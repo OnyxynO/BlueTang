@@ -7,6 +7,7 @@ import { compterChunks } from '../bdd/connexion.js'
 import { GestionnaireMcp } from '../mcp/gestionnaire.js'
 import { ajouterRoutesCompletions } from './completions.js'
 import { ajouterRoutesModeles } from './modeles.js'
+import { afficherLogo } from '../version.js'
 
 export function creerApp(
   config: Config,
@@ -36,7 +37,8 @@ export async function demarrerServeur(config: Config, db: Db | null = null): Pro
   const app = creerApp(config, db, gestionnaireMcp)
 
   honoServe({ fetch: app.fetch, port: config.port }, async () => {
-    console.log(`BlueTang démarré → http://localhost:${config.port}`)
+    afficherLogo()
+    console.log(`Proxy       → http://localhost:${config.port}`)
     console.log(`Ollama      : ${config.ollamaUrl}`)
     console.log(`Modèle      : ${config.modele}`)
     console.log(`Contexte    : ${config.numCtx} tokens`)
