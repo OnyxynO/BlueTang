@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { creerApp } from '../src/serveur/app.js'
 import { configDefaut } from '../src/config.js'
+import { VERSION } from '../src/version.js'
 
 const config = { ...configDefaut, verbose: false }
 
@@ -24,7 +25,7 @@ describe('/health', () => {
     expect(rep.status).toBe(200)
     expect(donnees.statut).toBe('ok')
     expect(donnees.ollama).toBe('0.5.1')
-    expect(donnees.proxy).toBe('0.3.0')
+    expect(donnees.proxy).toBe(VERSION)
   })
 
   it('retourne 503 si Ollama est inaccessible', async () => {

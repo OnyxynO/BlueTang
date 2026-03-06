@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OnyxynO/BlueTang"
+    "url": "git+https://github.com/OnyxynO/BlueTang.git"
   },
   "homepage": "https://github.com/OnyxynO/BlueTang#readme",
   "keywords": [
@@ -24,7 +24,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "bluetang": "./dist/index.js"
+    "bluetang": "dist/index.js"
   },
   "files": [
     "dist/",
