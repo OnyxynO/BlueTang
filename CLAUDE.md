@@ -102,6 +102,9 @@ src/
 | Audit C | ✅ Terminé | Erreurs silencieuses, timeouts (300s), batching embeddings, validation MCP |
 | Audit D | ✅ Terminé | README, CHANGELOG, CONTRIBUTING, tags GitHub, benchmark perf |
 | Languages | ✅ Terminé | `bluetang languages [add\|remove]` — catalogue dynamique, install npm --no-save |
+| v0.4.0 | ✅ Terminé | Logo ASCII `><{{{°>`, README bilingue EN/FR, publication npm |
+
+**Projet terminé et publié sur npm : `npm install -g bluetang`**
 
 ## Endpoints
 
