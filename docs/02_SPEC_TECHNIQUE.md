@@ -25,18 +25,18 @@
 
 ```
 POST /v1/chat/completions
-         │
+         |
          ▼
    [Router Hono]
-         │
-         ├─────────────────────┐
+         |
+         +---------------------+
          ▼                     ▼
   [RAG — Phase 2+]    [Mémoire — Phase 4+]
   embed question       charger résumé session
   FTS5 + sqlite-vec    + faits clés
   top-K chunks
-         │                     │
-         └──────────┬──────────┘
+         |                     |
+         +----------+----------+
                     ▼
           [Assembleur de prompt]
           system: instructions
@@ -45,13 +45,13 @@ POST /v1/chat/completions
           messages: derniers N
           system: chunks RAG      ← juste avant la question
           user: question courante
-                    │
+                    |
                     ▼
              [Ollama :11434]
-                    │
+                    |
                     ▼ (stream SSE)
              [Post-traitement]     ← Phase 4 : capture + mise à jour mémoire
-                    │
+                    |
                     ▼
                  Client
 ```

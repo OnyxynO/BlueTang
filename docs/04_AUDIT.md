@@ -344,15 +344,15 @@ BlueTang est un projet bien structuré, fonctionnel, avec une architecture clair
 
 ```
 Poste local (VS Code + Continue)
-         │
-         │  HTTP sur LAN (port 11435)
+         |
+         |  HTTP sur LAN (port 11435)
          ▼
 Mac mini (IP locale ex. 192.168.1.X)
-├── Ollama         (port 11434 — localhost uniquement)
-└── BlueTang       (port 11435 — 0.0.0.0 ou LAN)
-    ├── RAG (index codebase locale du Mac mini)
-    ├── Mémoire de session
-    └── Client MCP (optionnel)
++-- Ollama         (port 11434 — localhost uniquement)
++-- BlueTang       (port 11435 — 0.0.0.0 ou LAN)
+    +-- RAG (index codebase locale du Mac mini)
+    +-- Mémoire de session
+    +-- Client MCP (optionnel)
 ```
 
 ### 11.2 Prérequis Mac mini (serveur)

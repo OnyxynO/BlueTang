@@ -1,6 +1,6 @@
 # BlueTang — Documentation projet
 
-@../GUIDELINES_PROJETS.md
+@../../PRINCIPES.md
 
 ## Description
 
@@ -48,42 +48,42 @@ npm run build
 
 ```
 src/
-├── index.ts              # CLI (Commander) : toutes les commandes
-├── config.ts             # Config + validation Zod + chargerConfigFichier()
-├── version.ts            # VERSION lue dynamiquement depuis package.json
-├── cli/
-│   ├── init.ts           # lancerInit() — wizard @inquirer/prompts
-│   ├── clean.ts          # lancerClean() — suppression index/sessions + backup .bak
-│   └── languages.ts      # listerLanguages(), ajouterLanguages(), supprimerLanguages()
-├── langages/
-│   └── catalogue.ts      # Catalogue centralisé : LANGAGES_INTEGRES, LANGAGES_OPTIONNELS,
-│                         # LANGAGES_HEURISTIQUES, estInstalle(), chargerGrammaire(), mapExtensions()
-├── bdd/
-│   ├── connexion.ts      # ouvrirBdd() + sqlite-vec + chmod 700
-│   └── schema.ts         # Tables + index idx_chunks_fichier_id
-├── indexation/
-│   ├── chunker.ts        # chunkerFichier() — AST tree-sitter via catalogue (dynamique)
-│   ├── scanner.ts        # scannerDossier() — extensions lues depuis catalogue
-│   ├── pipeline.ts       # indexerDossier() — batch embeddings par 20
-│   └── watcher.ts        # surveillerDossier() — chokidar
-├── rag/
-│   ├── embedder.ts       # obtenirEmbedding() + obtenirEmbeddingsBatch()
-│   ├── recherche.ts      # BM25 + sémantique + hybride (0.4/0.6)
-│   └── assembleur.ts     # enrichirMessages() — injection contexte
-├── memoire/
-│   ├── session.ts        # identifierSession, chargerContexte, injecterMemoire
-│   └── resume.ts         # extraireFaits (regex), mettreAJourResume (Ollama async)
-├── mcp/
-│   ├── client.ts         # ClientMcp (SDK stdio, timeout 5s)
-│   ├── gestionnaire.ts   # GestionnaireMcp (pool clients)
-│   ├── pertinence.ts     # scorerPertinenceMcp (keyword matching, seuil 0.3)
-│   └── injecteur.ts      # injecterContexteMcp (resources → message système)
-├── serveur/
-│   ├── app.ts            # creerApp() + demarrerServeur() + vérif modèle au startup
-│   ├── completions.ts    # POST /v1/chat/completions — mémoire → RAG → MCP → Ollama
-│   └── modeles.ts        # /health, /stats, /v1/models, /v1/embeddings
-└── utils/
-    └── stopwords.ts      # Stopwords partagés (RAG + MCP)
++-- index.ts              # CLI (Commander) : toutes les commandes
++-- config.ts             # Config + validation Zod + chargerConfigFichier()
++-- version.ts            # VERSION lue dynamiquement depuis package.json
++-- cli/
+|   +-- init.ts           # lancerInit() — wizard @inquirer/prompts
+|   +-- clean.ts          # lancerClean() — suppression index/sessions + backup .bak
+|   +-- languages.ts      # listerLanguages(), ajouterLanguages(), supprimerLanguages()
++-- langages/
+|   +-- catalogue.ts      # Catalogue centralisé : LANGAGES_INTEGRES, LANGAGES_OPTIONNELS,
+|                         # LANGAGES_HEURISTIQUES, estInstalle(), chargerGrammaire(), mapExtensions()
++-- bdd/
+|   +-- connexion.ts      # ouvrirBdd() + sqlite-vec + chmod 700
+|   +-- schema.ts         # Tables + index idx_chunks_fichier_id
++-- indexation/
+|   +-- chunker.ts        # chunkerFichier() — AST tree-sitter via catalogue (dynamique)
+|   +-- scanner.ts        # scannerDossier() — extensions lues depuis catalogue
+|   +-- pipeline.ts       # indexerDossier() — batch embeddings par 20
+|   +-- watcher.ts        # surveillerDossier() — chokidar
++-- rag/
+|   +-- embedder.ts       # obtenirEmbedding() + obtenirEmbeddingsBatch()
+|   +-- recherche.ts      # BM25 + sémantique + hybride (0.4/0.6)
+|   +-- assembleur.ts     # enrichirMessages() — injection contexte
++-- memoire/
+|   +-- session.ts        # identifierSession, chargerContexte, injecterMemoire
+|   +-- resume.ts         # extraireFaits (regex), mettreAJourResume (Ollama async)
++-- mcp/
+|   +-- client.ts         # ClientMcp (SDK stdio, timeout 5s)
+|   +-- gestionnaire.ts   # GestionnaireMcp (pool clients)
+|   +-- pertinence.ts     # scorerPertinenceMcp (keyword matching, seuil 0.3)
+|   +-- injecteur.ts      # injecterContexteMcp (resources → message système)
++-- serveur/
+|   +-- app.ts            # creerApp() + demarrerServeur() + vérif modèle au startup
+|   +-- completions.ts    # POST /v1/chat/completions — mémoire → RAG → MCP → Ollama
+|   +-- modeles.ts        # /health, /stats, /v1/models, /v1/embeddings
++-- utils/
+    +-- stopwords.ts      # Stopwords partagés (RAG + MCP)
 ```
 
 ## Phases

@@ -11,18 +11,18 @@ Un **proxy HTTP transparent** entre un client LLM et Ollama. Le client ne change
 
 ```
 Client (Continue.dev / Open WebUI / curl)
-         │
-         │  POST /v1/chat/completions
+         |
+         |  POST /v1/chat/completions
          ▼
-  BlueTang :11435  ←── enrichit le contexte
-         │
-         │  POST /v1/chat/completions (messages enrichis)
+  BlueTang :11435  ←-- enrichit le contexte
+         |
+         |  POST /v1/chat/completions (messages enrichis)
          ▼
     Ollama :11434
-         │
+         |
          ▼ (stream SSE)
-  BlueTang :11435  ←── futur : capture pour mémoire
-         │
+  BlueTang :11435  ←-- futur : capture pour mémoire
+         |
          ▼
        Client
 ```
