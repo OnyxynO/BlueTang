@@ -6,3 +6,4 @@ data/
 .DS_Store
 .bluetang/
 .bluetang.json
+package-lock.json
