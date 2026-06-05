@@ -4,31 +4,33 @@ import type { McpServeurConfig } from '../config.js'
 
 // Mock du SDK MCP
 vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    connect: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn().mockResolvedValue(undefined),
-    listTools: vi.fn().mockResolvedValue({
-      tools: [
-        { name: 'read_file', description: 'Lire un fichier', inputSchema: { type: 'object' } },
-        { name: 'list_directory', description: 'Lister un dossier', inputSchema: { type: 'object' } },
-      ],
-    }),
-    listResources: vi.fn().mockResolvedValue({
-      resources: [
-        { uri: 'file:///test.txt', name: 'test.txt', description: 'Fichier de test', mimeType: 'text/plain' },
-      ],
-    }),
-    readResource: vi.fn().mockResolvedValue({
-      contents: [{ text: 'Contenu du fichier de test' }],
-    }),
-    callTool: vi.fn().mockResolvedValue({
-      content: [{ type: 'text', text: 'Résultat de l\'outil' }],
-    }),
-  })),
+  Client: vi.fn().mockImplementation(function () {
+    return {
+      connect: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      listTools: vi.fn().mockResolvedValue({
+        tools: [
+          { name: 'read_file', description: 'Lire un fichier', inputSchema: { type: 'object' } },
+          { name: 'list_directory', description: 'Lister un dossier', inputSchema: { type: 'object' } },
+        ],
+      }),
+      listResources: vi.fn().mockResolvedValue({
+        resources: [
+          { uri: 'file:///test.txt', name: 'test.txt', description: 'Fichier de test', mimeType: 'text/plain' },
+        ],
+      }),
+      readResource: vi.fn().mockResolvedValue({
+        contents: [{ text: 'Contenu du fichier de test' }],
+      }),
+      callTool: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: 'Résultat de l\'outil' }],
+      }),
+    }
+  }),
 }))
 
 vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
-  StdioClientTransport: vi.fn().mockImplementation(() => ({})),
+  StdioClientTransport: vi.fn().mockImplementation(function () { return {} }),
 }))
 
 describe('ClientMcp', () => {
