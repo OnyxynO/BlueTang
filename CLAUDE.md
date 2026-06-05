@@ -25,23 +25,25 @@ Ajoute RAG (recherche sémantique dans la codebase) et mémoire de conversation 
 
 ```bash
 # Développement
-npm run dev -- serve -v                        # avec logs détaillés
-npm run dev -- init                            # wizard de configuration
-npm run dev -- index ./src --ollama-url http://localhost:11434
-npm run dev -- status
-npm run dev -- watch ./src
-npm run dev -- clean --all -y
-npm run dev -- languages                       # lister les langages
-npm run dev -- languages add                  # ajouter via menu
-npm run dev -- languages remove               # désinstaller via menu
+bun run dev -- serve -v                        # avec logs détaillés
+bun run dev -- init                            # wizard de configuration
+bun run dev -- index ./src --ollama-url http://localhost:11434
+bun run dev -- status
+bun run dev -- watch ./src
+bun run dev -- clean --all -y
+bun run dev -- languages                       # lister les langages
+bun run dev -- languages add                  # ajouter via menu
+bun run dev -- languages remove               # désinstaller via menu
 
 # Tests
-npm test                                       # typecheck + vitest
-npm run test:watch                             # watch mode
-npm run typecheck
+bun run test                                   # typecheck + vitest (118/118)
+bun run test:watch                             # watch mode
+bun run typecheck
 
-# Build
-npm run build
+# Build + audit
+bun run build
+bun audit                                      # audit sécurité
+bun update <pkg>                               # mettre à jour un package
 ```
 
 ## Architecture
@@ -143,3 +145,6 @@ src/
 - **PATH SSH macOS** : `/opt/homebrew/bin` absent du PATH SSH → `export PATH=/opt/homebrew/bin:$PATH`
 - **Compatibilité grammaires tree-sitter** : moteur@0.21.x — les grammaires récentes (0.23+) peuvent être incompatibles. tree-sitter-ruby@0.23.1 fonctionne. Tester avant d'ajouter une grammaire au catalogue.
 - **npm install --prefix sans --no-save** : modifie `package.json` — toujours passer `--no-save` pour les langages optionnels
+- **Addons natifs (better-sqlite3, sqlite-vec) + upgrade Node.js majeur** : les binaires `.node` sont compilés pour une ABI spécifique. Après un upgrade Node majeur (ex: 22→26), `bun add better-sqlite3 sqlite-vec` pour recompiler. Signal : `NODE_MODULE_VERSION mismatch` au lancement des tests.
+- **Vitest 4 — mockImplementation sur constructeur** : `vi.fn().mockImplementation(() => ({}))` lève `TypeError: not a constructor` si le mock est appelé avec `new`. Utiliser `function () { return {} }` à la place.
+- **bun, pas npm** : le projet a migré vers bun (pas de package-lock.json). Utiliser `bun run test`, `bun audit`, `bun update`. `npm test` ne fonctionne plus.
