@@ -11,23 +11,23 @@
 ```bash
 git clone https://github.com/OnyxynO/BlueTang
 cd BlueTang
-npm install
+bun install
 ```
 
 ## Lancer en mode développement
 
 ```bash
-npm run dev -- serve -v           # proxy avec logs détaillés
-npm run dev -- index ./src        # indexer la codebase
-npm run dev -- init               # assistant de configuration
+bun run dev -- serve -v           # proxy avec logs détaillés
+bun run dev -- index ./src        # indexer la codebase
+bun run dev -- init               # assistant de configuration
 ```
 
 ## Tests
 
 ```bash
-npm test                  # tous les tests (typecheck + vitest)
-npm run test:watch        # mode watch
-npm run typecheck         # TypeScript uniquement
+bun run test               # tous les tests (typecheck + vitest)
+bun run test:watch         # mode watch
+bun run typecheck          # TypeScript uniquement
 ```
 
 Les tests mockent `fetch` globalement via `vi.stubGlobal` — pas besoin d'Ollama pour les faire tourner.
@@ -62,7 +62,7 @@ test: ajouter tests pour rechercherHybrid
 ## Soumettre une PR
 
 1. Fork + branche depuis `main`
-2. `npm test` doit passer
+2. `bun run test` doit passer
 3. Description claire de ce que la PR ajoute/corrige
 4. Une PR = une fonctionnalité ou un correctif
 

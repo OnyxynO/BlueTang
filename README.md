@@ -193,12 +193,12 @@ LLM client sends POST /v1/chat/completions
 ```bash
 git clone https://github.com/OnyxynO/BlueTang
 cd BlueTang
-npm install
+bun install
 
-npm run dev -- serve -v     # dev mode
-npm test                     # tests (118 tests)
-npm run typecheck            # TypeScript check
-npm run build                # production build
+bun run dev -- serve -v     # dev mode
+bun run test                 # tests (118 tests)
+bun run typecheck            # TypeScript check
+bun run build                # production build
 ```
 
 ### Troubleshooting
@@ -231,7 +231,7 @@ bluetang index ./src --ollama-url http://localhost:11434
 - **sqlite-vec** v0.1.7-alpha: no explicit rowid in INSERT
 - **tree-sitter grammars**: CJS modules → use `createRequire(import.meta.url)` in ESM
 - **Minimum model**: `qwen3:1.7b` recommended — 0.6b models poorly exploit injected RAG context
-- **tree-sitter compatibility**: engine `0.21.x` — newer grammars may be incompatible; BlueTang falls back to heuristic chunking automatically
+- **tree-sitter compatibility**: engine `0.25.x` — some optional grammars declare an outdated peer dependency and are installed with `--legacy-peer-deps`; BlueTang falls back to heuristic chunking automatically if a grammar fails to load
 
 ---
 
@@ -384,11 +384,11 @@ BlueTang écoute sur `0.0.0.0` par défaut — accessible depuis d'autres machin
 ```bash
 git clone https://github.com/OnyxynO/BlueTang
 cd BlueTang
-npm install
+bun install
 
-npm run dev -- serve -v     # mode dev
-npm test                     # tests (118 tests)
-npm run build                # build production
+bun run dev -- serve -v     # mode dev
+bun run test                 # tests (118 tests)
+bun run build                # build production
 ```
 
 ---
