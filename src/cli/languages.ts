@@ -50,9 +50,14 @@ export async function ajouterLanguages(): Promise<void> {
   console.log(`\nInstallation de ${packages.join(', ')} dans ${BLUETANG_ROOT}...`)
 
   try {
-    await execFileAsync('npm', ['install', '--no-save', '--prefix', BLUETANG_ROOT, ...packages], {
-      cwd: BLUETANG_ROOT,
-    })
+    // --legacy-peer-deps : certaines grammaires (ex. tree-sitter-kotlin) déclarent une
+    // peerDependency tree-sitter obsolète (^0.21) non maintenue en amont, alors que le
+    // binding natif tree-sitter reste rétro-compatible avec les grammaires anciennes.
+    await execFileAsync(
+      'npm',
+      ['install', '--no-save', '--legacy-peer-deps', '--prefix', BLUETANG_ROOT, ...packages],
+      { cwd: BLUETANG_ROOT },
+    )
     console.log('\nInstallés avec succès :')
     for (const l of choix) {
       console.log(`  ✓ ${l.label} (${l.extensions.join(', ')})`)

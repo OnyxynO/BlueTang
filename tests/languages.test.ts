@@ -16,7 +16,14 @@ import { chunkerFichier } from '../src/indexation/chunker.js'
 const execFileAsync = promisify(execFile)
 
 async function installer(...packages: string[]): Promise<void> {
-  await execFileAsync('npm', ['install', '--no-save', '--prefix', BLUETANG_ROOT, ...packages])
+  await execFileAsync('npm', [
+    'install',
+    '--no-save',
+    '--legacy-peer-deps',
+    '--prefix',
+    BLUETANG_ROOT,
+    ...packages,
+  ])
 }
 
 async function desinstaller(...packages: string[]): Promise<void> {

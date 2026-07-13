@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [Non publié]
+
+### Modifié
+- Dépendances mises à jour : `hono` (CVE high CORS corrigé), `commander` 12→15, `@hono/node-server` 1→2, `typescript` 5→6, `tree-sitter` 0.21→0.25 (+ grammaires JS/Python/PHP), `@types/node` 22→26
+- `bluetang languages add` : ajout de `--legacy-peer-deps` à l'installation npm (certaines grammaires optionnelles, ex. Kotlin, déclarent une peerDependency `tree-sitter` obsolète non maintenue en amont, sans incompatibilité réelle)
+
+### Notes
+- Node.js 24+ : la compilation native de `tree-sitter` requiert `CXXFLAGS="-std=c++20"` (voir README, section Installation)
+
+---
+
 ## [0.4.0] — 2026-03-06
 
 ### Ajouté
