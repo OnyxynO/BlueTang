@@ -5,7 +5,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
-## [Non publié]
+## [0.4.1] — 2026-07-13
 
 ### Modifié
 - Dépendances mises à jour : `hono` (CVE high CORS corrigé), `commander` 12→15, `@hono/node-server` 1→2, `typescript` 5→6, `tree-sitter` 0.21→0.25 (+ grammaires JS/Python/PHP), `@types/node` 22→26
