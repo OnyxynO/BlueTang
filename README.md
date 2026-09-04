@@ -38,12 +38,11 @@ npx bluetang serve
 - [Ollama](https://ollama.ai) running
 - `ollama pull nomic-embed-text` for semantic RAG (optional)
 
-**Node.js 24+**: the native `tree-sitter` binding requires C++20, which isn't enabled by
-default in `node-gyp` builds on these versions. If `npm install -g bluetang` fails while
-compiling `tree-sitter`, retry with:
-```bash
-CXXFLAGS="-std=c++20" npm install -g bluetang
-```
+**Native `tree-sitter` binding**: `tree-sitter` ≥ 0.25.1 ships N-API prebuilds for the
+common platforms (macOS/Linux/Windows, x64 & arm64), so no compilation happens on
+install. On a platform without a prebuild, `node-gyp` builds from source and now selects
+C++20 automatically for Node ≥ 22 — a C++20-capable toolchain is enough, no `CXXFLAGS`
+override needed.
 
 ### Quick start
 
@@ -263,12 +262,11 @@ npx bluetang serve
 - [Ollama](https://ollama.ai) en cours d'exécution
 - `ollama pull nomic-embed-text` pour le RAG sémantique (optionnel)
 
-**Node.js 24+** : le binding natif `tree-sitter` requiert C++20, non activé par défaut par
-`node-gyp` sur ces versions. Si `npm install -g bluetang` échoue pendant la compilation de
-`tree-sitter`, relancer avec :
-```bash
-CXXFLAGS="-std=c++20" npm install -g bluetang
-```
+**Binding natif `tree-sitter`** : `tree-sitter` ≥ 0.25.1 fournit des prebuilds N-API pour
+les plateformes courantes (macOS/Linux/Windows, x64 & arm64) — aucune compilation à
+l'installation. Sur une plateforme sans prebuild, `node-gyp` compile depuis les sources et
+sélectionne désormais C++20 automatiquement pour Node ≥ 22 : une toolchain compatible
+C++20 suffit, sans variable `CXXFLAGS`.
 
 ### Démarrage rapide
 
