@@ -50,12 +50,12 @@ export async function ajouterLanguages(): Promise<void> {
   console.log(`\nInstallation de ${packages.join(', ')} dans ${BLUETANG_ROOT}...`)
 
   try {
-    // --legacy-peer-deps : certaines grammaires (ex. tree-sitter-kotlin) déclarent une
-    // peerDependency tree-sitter obsolète (^0.21) non maintenue en amont, alors que le
-    // binding natif tree-sitter reste rétro-compatible avec les grammaires anciennes.
+    // bun (contrairement à npm) ne bloque pas en ERESOLVE sur une peerDependency
+    // obsolète (ex. tree-sitter-kotlin → tree-sitter ^0.21) : pas d'équivalent
+    // --legacy-peer-deps nécessaire. --cwd remplace --prefix (pas de flag --prefix en bun).
     await execFileAsync(
-      'npm',
-      ['install', '--no-save', '--legacy-peer-deps', '--prefix', BLUETANG_ROOT, ...packages],
+      'bun',
+      ['add', '--no-save', '--cwd', BLUETANG_ROOT, ...packages],
       { cwd: BLUETANG_ROOT },
     )
     console.log('\nInstallés avec succès :')
@@ -65,7 +65,7 @@ export async function ajouterLanguages(): Promise<void> {
     console.log('\nRelancer `bluetang index` pour réindexer avec les nouveaux langages.')
   } catch (err) {
     console.error(`\nErreur lors de l'installation : ${err instanceof Error ? err.message : String(err)}`)
-    console.error(`Essaie manuellement : npm install --prefix ${BLUETANG_ROOT} ${packages.join(' ')}`)
+    console.error(`Essaie manuellement : bun add --no-save --cwd ${BLUETANG_ROOT} ${packages.join(' ')}`)
   }
 }
 
@@ -94,7 +94,7 @@ export async function supprimerLanguages(): Promise<void> {
   console.log(`\nDésinstallation de ${packages.join(', ')}...`)
 
   try {
-    await execFileAsync('npm', ['uninstall', '--no-save', '--prefix', BLUETANG_ROOT, ...packages], {
+    await execFileAsync('bun', ['remove', '--no-save', '--cwd', BLUETANG_ROOT, ...packages], {
       cwd: BLUETANG_ROOT,
     })
     console.log('\nDésinstallés :')
