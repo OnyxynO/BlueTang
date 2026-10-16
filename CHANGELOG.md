@@ -5,6 +5,17 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [0.4.2] — 2026-10-16
+
+### Sécurité
+- `@modelcontextprotocol/sdk` relevé à `^1.31` (avis high sur les versions < 1.31) et `proxy-addr` 2.0.8 (avis critical, tiré par `express` via le SDK MCP)
+
+### Modifié
+- `tree-sitter` ≥ 0.25.1 : prebuilds N-API fournis, plus aucune compilation native à l'installation (plus besoin de `CXXFLAGS="-std=c++20"` sous Node 24+)
+- `bluetang languages add/remove` : utilise `bun` s'il est présent, sinon `npm` comme avant — une installation `npm install -g bluetang` n'a besoin que de Node.js
+
+---
+
 ## [0.4.1] — 2026-07-13
 
 ### Modifié

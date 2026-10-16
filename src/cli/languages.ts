@@ -10,6 +10,44 @@ import {
 
 const execFileAsync = promisify(execFile)
 
+type Commande = [string, string[]]
+type Executeur = (cmd: string, args: string[], opts: { cwd: string }) => Promise<unknown>
+
+// bun d'abord : le dépôt de dev est géré par bun, et npm sans package-lock.json élaguerait
+// ses dépendances transitives (issue #22). npm en repli : c'est le seul gestionnaire garanti
+// après un `npm install -g bluetang` (le README n'exige que Node.js).
+export function commandesGestionnaire(action: 'ajouter' | 'supprimer', packages: string[]): Commande[] {
+  if (action === 'ajouter') {
+    return [
+      ['bun', ['add', '--no-save', '--cwd', BLUETANG_ROOT, ...packages]],
+      // --legacy-peer-deps : certaines grammaires (ex. tree-sitter-kotlin) déclarent une
+      // peerDependency tree-sitter obsolète (^0.21) ; bun, lui, ne bloque pas dessus.
+      ['npm', ['install', '--no-save', '--legacy-peer-deps', '--prefix', BLUETANG_ROOT, ...packages]],
+    ]
+  }
+  return [
+    ['bun', ['remove', '--no-save', '--cwd', BLUETANG_ROOT, ...packages]],
+    ['npm', ['uninstall', '--no-save', '--prefix', BLUETANG_ROOT, ...packages]],
+  ]
+}
+
+// Essaie chaque commande dans l'ordre ; ne passe à la suivante que si l'exécutable est
+// absent (ENOENT). Toute autre erreur (réseau, paquet introuvable) remonte telle quelle.
+export async function executerAvecRepli(
+  commandes: Commande[],
+  executer: Executeur = execFileAsync,
+): Promise<string> {
+  for (const [cmd, args] of commandes) {
+    try {
+      await executer(cmd, args, { cwd: BLUETANG_ROOT })
+      return cmd
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+    }
+  }
+  throw new Error(`aucun gestionnaire trouvé dans le PATH (${commandes.map(([c]) => c).join(', ')})`)
+}
+
 export async function listerLanguages(): Promise<void> {
   console.log('\nLanguages intégrés (toujours disponibles) :')
   for (const lang of LANGAGES_INTEGRES) {
@@ -50,14 +88,7 @@ export async function ajouterLanguages(): Promise<void> {
   console.log(`\nInstallation de ${packages.join(', ')} dans ${BLUETANG_ROOT}...`)
 
   try {
-    // bun (contrairement à npm) ne bloque pas en ERESOLVE sur une peerDependency
-    // obsolète (ex. tree-sitter-kotlin → tree-sitter ^0.21) : pas d'équivalent
-    // --legacy-peer-deps nécessaire. --cwd remplace --prefix (pas de flag --prefix en bun).
-    await execFileAsync(
-      'bun',
-      ['add', '--no-save', '--cwd', BLUETANG_ROOT, ...packages],
-      { cwd: BLUETANG_ROOT },
-    )
+    await executerAvecRepli(commandesGestionnaire('ajouter', packages))
     console.log('\nInstallés avec succès :')
     for (const l of choix) {
       console.log(`  ✓ ${l.label} (${l.extensions.join(', ')})`)
@@ -65,7 +96,7 @@ export async function ajouterLanguages(): Promise<void> {
     console.log('\nRelancer `bluetang index` pour réindexer avec les nouveaux langages.')
   } catch (err) {
     console.error(`\nErreur lors de l'installation : ${err instanceof Error ? err.message : String(err)}`)
-    console.error(`Essaie manuellement : bun add --no-save --cwd ${BLUETANG_ROOT} ${packages.join(' ')}`)
+    console.error(`Essaie manuellement : npm install --no-save --legacy-peer-deps --prefix ${BLUETANG_ROOT} ${packages.join(' ')}`)
   }
 }
 
@@ -94,9 +125,7 @@ export async function supprimerLanguages(): Promise<void> {
   console.log(`\nDésinstallation de ${packages.join(', ')}...`)
 
   try {
-    await execFileAsync('bun', ['remove', '--no-save', '--cwd', BLUETANG_ROOT, ...packages], {
-      cwd: BLUETANG_ROOT,
-    })
+    await executerAvecRepli(commandesGestionnaire('supprimer', packages))
     console.log('\nDésinstallés :')
     for (const l of choix) {
       console.log(`  ✗ ${l.label}`)
